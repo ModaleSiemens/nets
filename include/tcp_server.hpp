@@ -28,9 +28,10 @@ namespace nets
             bool startAccepting();
             bool stopAccepting ();
 
-            virtual void onClientConnection         (nets::TcpRemote& client) = 0;
-            virtual void onForbiddenClientConnection(nets::TcpRemote& client) = 0;
-            virtual void onClientDisconnection(const nets::TcpRemote& client) = 0;
+            virtual void onClientConnection(nets::TcpRemote& client) = 0;
+            
+            // Client connected when server wasn't accepting requests
+            virtual void onForbiddenClientConnection(nets::TcpRemote& client) = 0; 
 
             bool closeConnection(nets::TcpRemote& client);
             void closeAllConnections();
