@@ -160,6 +160,7 @@ namespace nets
 
     TcpServer::~TcpServer()
     {
+        stopAccepting();
         closeAllConnections();
     }
 }   
