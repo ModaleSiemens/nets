@@ -1,7 +1,8 @@
 tests = [
     [
         'Test1',
-        'test1.cpp'
+        'test1.cpp',
+        'tcp_server.cpp'
     ]
 ]
 
