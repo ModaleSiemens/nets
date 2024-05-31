@@ -126,6 +126,38 @@ namespace nets
         return clients;
     }    
 
+    bool TcpServer::closeConnection(nets::TcpRemote& client)
+    {
+        const auto client_iter {
+            std::find(clients.begin(), clients.end(), client)
+        };
+
+        if(client_iter != clients.end())
+        {
+            boost::system::error_code error;
+
+            client_iter->getSocket().close(error);
+
+            clients.erase(client_iter);
+
+            return !error;
+        } 
+        else
+        {
+            return false;
+        }
+    }
+
+    void TcpServer::closeAllConnections()
+    {
+        for(auto& client : clients)
+        {
+            client.getSocket().close();
+        }
+
+        clients.clear();
+    }
+
     TcpServer::~TcpServer()
     {
         closeAllConnections();

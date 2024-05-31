@@ -13,6 +13,8 @@ namespace nets
             std::string getAddress() const;
             nets::Port  getPort()    const;
 
+            bool connectionIsOpen();
+
             nets::TcpSocket& getSocket();
 
         private:
