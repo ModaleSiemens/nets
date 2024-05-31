@@ -2,12 +2,14 @@
 
 #include "types.hpp"
 
+#include "../subprojects/collection/include/collection.hpp"
+
 namespace nets
 {
-    class Sender
+    class TcpSender
     {
         public:
-            Sender(nets::Remote& remote);
+            TcpSender(nets::TcpRemote& remote);
 
             void sends(const mdsm::Collection message);
 

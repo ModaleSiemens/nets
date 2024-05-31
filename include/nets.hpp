@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../subprojects/collection/include/collection.hpp"
+#include <boost/asio.hpp>
 
 #include "types.hpp"
 #include "tcp_server.hpp"
 #include "tcp_client.hpp"
-#include "remote.hpp"
-#include "sender.hpp"
+#include "tcp_remote.hpp"
+#include "tcp_sender.hpp"

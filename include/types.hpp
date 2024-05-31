@@ -6,6 +6,9 @@ namespace nets
 {
     using Port = boost::asio::ip::port_type;
 
+    using TcpSocket = boost::asio::ip::tcp::socket;
+    using UdpSocket = boost::asio::ip::udp::socket;
+
     enum class AddressKind
     {
         dns, raw
@@ -19,7 +22,8 @@ namespace nets
     class Server;
     class Client;
 
-    class Remote;
+    class TcpRemote;
+    class UdpRemote;
 
-    class Sender;
+    class TcpSender;
 }
