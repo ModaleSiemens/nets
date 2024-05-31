@@ -2,7 +2,7 @@
 
 #include "types.hpp"
 
-#include <vector>
+#include <list>
 
 namespace nets
 {
@@ -11,10 +11,15 @@ namespace nets
         public:
             TcpServer(
                 const nets::Port       port,
-                const nets::IPVersion  ip_version,
-                const size_t           queue_size,
-                const std::string_view address = ""
+                const nets::IPVersion  ip_version
             );
+
+            // Bind acceptor to specific address
+            TcpServer(
+                const nets::Port       port,
+                const nets::IPVersion  ip_version,
+                const std::string_view address
+            );            
 
             TcpServer(const TcpServer&) = delete;
 
@@ -37,6 +42,9 @@ namespace nets
             ~TcpServer();
         
         private:
-            // TODO 
+            boost::asio::io_context        io_context;
+            boost::asio::ip::tcp::acceptor acceptor;
+
+            std::list<TcpRemote> clients;
     };
 }
