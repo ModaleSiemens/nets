@@ -16,8 +16,8 @@ namespace nets
             void connect   ();
             void disconnect();
 
-            virtual void onConnection   (nets::Remote& server);
-            virtual void onDisconnection(const nets::Remote& server);
+            virtual void onConnection   (nets::TcpRemote&       server);
+            virtual void onDisconnection(const nets::TcpRemote& server);
 
             std::string_view getServerAddress();
             nets::Port       getServerPort   ();

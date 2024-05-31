@@ -12,6 +12,7 @@ namespace nets
             TcpServer(
                 const nets::Port       port,
                 const nets::IPVersion  ip_version,
+                const size_t           queue_size,
                 const std::string_view address = ""
             );
 
@@ -22,16 +23,16 @@ namespace nets
             void start();
             void stop();
 
-            virtual void onClientConnection   (nets::Remote& client);
-            virtual void onClientDisconnection(const nets::Remote& client);
+            virtual void onClientConnection   (nets::TcpRemote& client);
+            virtual void onClientDisconnection(const nets::TcpRemote& client);
 
-            void closeConnection(nets::Remote& client);
+            void closeConnection(nets::TcpRemote& client);
             void closeAllConnections();
 
             size_t getClientsCount();
 
-            std::vector<nets::Remote>       getClients();
-            const std::vector<nets::Remote> getClients() const;
+            std::vector<nets::TcpRemote>       getClients();
+            const std::vector<nets::TcpRemote> getClients() const;
 
             ~TcpServer();
         
