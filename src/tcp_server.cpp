@@ -1,5 +1,7 @@
 #include "../include/tcp_server.hpp"
 
+#include "../include/tcp_remote.hpp"
+
 namespace nets
 {
     TcpServer::TcpServer(
@@ -38,8 +40,94 @@ namespace nets
     {
     }    
 
-    void TcpServer::start()
+    bool TcpServer::startAccepting()
     {
-        clients.push_back({io_context});
+        if(!is_accepting)
+        {
+            accept();
+
+            return is_accepting = true;
+        }
+        else 
+        {
+            return false;
+        }
+    }
+
+    bool TcpServer::stopAccepting()
+    {
+        if(is_accepting)
+        {
+            boost::system::error_code error;
+
+            if(acceptor.is_open())
+            {
+                acceptor.close(error);
+            }
+
+            return !(is_accepting = false) && !error;
+        }
+        else 
+        {
+            return false;
+        }
+    }    
+
+    void TcpServer::accept()
+    {
+        if(is_accepting)
+        {
+            clients.push_back({io_context});
+
+            acceptor.async_accept(
+                clients.back().getSocket(),
+                std::bind(
+                    &TcpServer::handleAccepting,
+                    this,
+                    clients.back(),
+                    std::placeholders::_1
+                )
+            );
+        }
+    }
+
+    void TcpServer::handleAccepting(
+        TcpRemote& client,
+        const boost::system::error_code& error
+    )
+    {
+        if(!error)
+        {
+            if(is_accepting)
+            {
+                onClientConnection(client);
+            }
+            else
+            {
+                onForbiddenClientConnection(client);
+            }
+        }
+
+        accept();
+    }
+
+    size_t TcpServer::getClientsCount()
+    {
+        return clients.size();
+    }
+
+    std::list<nets::TcpRemote>& TcpServer::getClients()
+    {
+        return clients;
+    }
+
+    const std::list<nets::TcpRemote>& TcpServer::getClients() const
+    {
+        return clients;
+    }    
+
+    TcpServer::~TcpServer()
+    {
+        closeAllConnections();
     }
 }   

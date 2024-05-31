@@ -25,10 +25,11 @@ namespace nets
 
             TcpServer& operator=(const TcpServer&) = delete;
 
-            void start();
-            void stop();
+            bool startAccepting();
+            bool stopAccepting ();
 
-            virtual void onClientConnection   (nets::TcpRemote& client);
+            virtual void onClientConnection         (nets::TcpRemote& client);
+            virtual void onForbiddenClientConnection(nets::TcpRemote& client);
             virtual void onClientDisconnection(const nets::TcpRemote& client);
 
             void closeConnection(nets::TcpRemote& client);
@@ -36,8 +37,8 @@ namespace nets
 
             size_t getClientsCount();
 
-            std::vector<nets::TcpRemote>       getClients();
-            const std::vector<nets::TcpRemote> getClients() const;
+            std::list<nets::TcpRemote>&       getClients();
+            const std::list<nets::TcpRemote>& getClients() const;
 
             ~TcpServer();
         
@@ -46,5 +47,14 @@ namespace nets
             boost::asio::ip::tcp::acceptor acceptor;
 
             std::list<TcpRemote> clients;
+            
+            bool is_accepting {false};
+
+            void accept();
+
+            void handleAccepting(
+                TcpRemote& client,
+                const boost::system::error_code& error
+            );
     };
 }
