@@ -8,6 +8,8 @@ project(
     ]
 )
 
+collection_proj = subproject('collection')
+
 subdir('src')
 
 sockets_dep = [] 

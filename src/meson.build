@@ -1,4 +1,4 @@
 src = files(
-    'server.cpp',
-    'client.cpp'
+    'tcp_server.cpp',
+    'tcp_client.cpp'
 )

@@ -1,0 +1,5 @@
+[wrap-git]
+
+directory = collection
+url       = https://github.com/ModaleSiemens/collection.git
+revision  = head
