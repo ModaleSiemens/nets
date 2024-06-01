@@ -26,6 +26,10 @@ namespace nets
                 const PingTime ping_delay
             );
 
+            void enablePinging          (const bool value = true);
+            void enableBeingPinged      (const bool value = true);
+            void enableReceivingMessages(const bool value = true);
+
             ~TcpRemote();
             
             virtual void initialize() {}
@@ -42,15 +46,6 @@ namespace nets
             );
 
             void setPingingTimeoutPeriod(const PingTime period);
-
-            void startListeningForIncomingMessages();
-            void stopListeningForIncomingMessages();
-
-            void startPinging();
-            void stopPinging();
-
-            void startListeningForPings();
-            void stopListeningForPings();
 
             virtual void onPingingTimeout()   {};
             virtual void onPingFailedSending() {};
@@ -73,8 +68,8 @@ namespace nets
             std::string address;
             nets::Port  port;
 
-            std::atomic_bool pinging_enabled             {false};
-            std::atomic_bool listening_enabled           {true};
+            std::atomic_bool pinging_enabled            {false};
+            std::atomic_bool receiving_messages_enabled {true};
 
             PingTime ping_timeout_period;
             PingTime ping_delay;
@@ -88,6 +83,15 @@ namespace nets
 
             std::atomic_bool active         {true};
             std::atomic_bool socket_is_open {false};
+
+            void startPinging();
+            void stopPinging();     
+
+            void startListeningForIncomingMessages();
+            void stopListeningForIncomingMessages();           
+
+            void startListeningForPings();
+            void stopListeningForPings();                    
     };
 }
 
@@ -147,7 +151,7 @@ namespace nets
                                 startPinging();
                             }
 
-                            if(listening_enabled.load())
+                            if(receiving_messages_enabled.load())
                             {
                                 startListeningForIncomingMessages();
                             }
@@ -156,6 +160,24 @@ namespace nets
                 }
             }
         }.detach();
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::enablePinging(const bool value)
+    {
+        pinging_enabled = value;
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::enableBeingPinged(const bool value)
+    {
+        message_callbacks[MessageIdEnum::ping_request].second = value;
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::enableReceivingMessages(const bool value)
+    {
+        receiving_messages_enabled = value;
     }
 
     template <typename MessageIdEnum>
@@ -277,14 +299,14 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
     {
-        listening_enabled =  true;
+        receiving_messages_enabled =  true;
 
         boost::asio::async_read(
             socket,
             boost::asio::buffer(&read_message_size, sizeof(read_message_size)),
             [&, this](const boost::system::error_code error, const std::size_t bytes_count)
             {
-                if(listening_enabled.load() && socket_is_open.load())
+                if(receiving_messages_enabled.load() && socket_is_open.load())
                 {
                     const auto message_size {
                         mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
@@ -299,7 +321,7 @@ namespace nets
                         boost::asio::buffer(&read_message_data, message_size),
                         [&, this](const boost::system::error_code error, const std::size_t bytes_count)
                         {
-                            if(listening_enabled.load() && socket_is_open.load())
+                            if(receiving_messages_enabled.load() && socket_is_open.load())
                             {
                                 const auto message_id {
                                     read_message_data.retrieve<MessageIdEnum>()
@@ -343,7 +365,7 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::stopListeningForIncomingMessages()
     {
-        listening_enabled = false;
+        receiving_messages_enabled = false;
     }
 
     template <typename MessageIdEnum>
