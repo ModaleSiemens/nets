@@ -10,15 +10,18 @@ namespace nets
     {
         public:
             TcpServer(
-                const nets::Port       port,
-                const nets::IPVersion  ip_version
+                const nets::Port                port,
+                const nets::IPVersion           ip_version,
+                const nets::TcpRemote::PingTime ping_timeout_time = nets::TcpRemote::PingTime{3}
             );
 
             // Bind acceptor to specific address
             TcpServer(
-                const nets::Port       port,
-                const nets::IPVersion  ip_version,
-                const std::string_view address
+                const nets::Port                port,
+                const nets::IPVersion           ip_version,
+                const std::string_view          address,
+                const nets::TcpRemote::PingTime ping_timeout_time = nets::TcpRemote::PingTime{3}
+
             );            
 
             TcpServer(const TcpServer&) = delete;
@@ -50,6 +53,8 @@ namespace nets
             std::list<TcpRemote> clients;
             
             bool is_accepting {false};
+
+            nets::TcpRemote::PingTime ping_timeout_time;
 
             void accept();
 

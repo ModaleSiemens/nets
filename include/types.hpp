@@ -14,6 +14,11 @@ namespace nets
         ipv4, ipv6
     };
 
+    enum class PingError
+    {
+        espired, failed_to_send
+    };
+
     class TcpServer;
     class TcpClient;
 

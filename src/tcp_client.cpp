@@ -4,7 +4,8 @@ namespace nets
 {
     TcpClient::TcpClient(
         const std::string_view  address,
-        const std::string_view  port
+        const std::string_view  port,
+        const nets::TcpRemote::PingTime ping_timer
     )
     :
         io_context{},
@@ -12,7 +13,7 @@ namespace nets
         address{address},
         port{port},
 
-        server{io_context}
+        server{io_context, ping_timer}
     {
     }
 
@@ -24,12 +25,24 @@ namespace nets
 
             boost::asio::ip::tcp::resolver resolver {io_context};
 
+            boost::system::error_code error;
+
             boost::asio::connect(
                 server.getSocket(),
-                resolver.resolve(address, port)
+                resolver.resolve(address, port),
+                error
             );
+            
+            if(!error)
+            {
+                onConnection(server);
 
-            onConnection(server);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
 
             return true;
         }
@@ -53,5 +66,10 @@ namespace nets
         {
             return false;
         }
+    }
+
+    void TcpClient::process(nets::TcpRemote& server)
+    {
+
     }
 }

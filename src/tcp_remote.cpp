@@ -21,7 +21,13 @@ namespace nets
 
     bool TcpRemote::connectionIsOpen()
     {
-        return socket.is_open();
+        std::string empty_string {""};
+
+        boost::system::error_code error;
+
+        boost::asio::read(socket, boost::asio::buffer(empty_string), error);
+
+        return !error;
     }
 
     nets::TcpSocket& TcpRemote::getSocket()

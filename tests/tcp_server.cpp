@@ -11,7 +11,7 @@ class Server : public nets::TcpServer
         {
             std::println("Client connected!");
 
-            closeConnection(client);
+            std::println("{}", closeConnection(client));
 
             std::println("Closed connection...");
         }

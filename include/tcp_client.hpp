@@ -9,14 +9,17 @@ namespace nets
     {
         public:
             TcpClient(
-                const std::string_view  address,
-                const std::string_view  port
+                const std::string_view          address,
+                const std::string_view          port,
+                const nets::TcpRemote::PingTime ping_timer = TcpRemote::PingTime{3}
             );
 
             bool connect();
             bool disconnect();
 
             virtual void onConnection(nets::TcpRemote& server) = 0;
+            virtual void onDisconnection(nets::TcpRemote& server) = 0;
+            virtual void process(nets::TcpRemote& server);
 
             std::string_view getServerAddress();
             nets::Port       getServerPort   ();

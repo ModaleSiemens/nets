@@ -7,7 +7,8 @@ namespace nets
 {
     TcpServer::TcpServer(
         const nets::Port       port,
-        const nets::IPVersion  ip_version
+        const nets::IPVersion  ip_version,
+        const nets::TcpRemote::PingTime ping_timeout_time
     )
     :
         io_context{},
@@ -19,7 +20,8 @@ namespace nets
                 boost::asio::ip::tcp::v4() : boost::asio::ip::tcp::v6(),
                 port
             }
-        }
+        },
+        ping_timeout_time{ping_timeout_time}
     {
         std::thread {
             [this]
@@ -32,7 +34,8 @@ namespace nets
     TcpServer::TcpServer(
         const nets::Port       port,
         const nets::IPVersion  ip_version,
-        const std::string_view address
+        const std::string_view address,
+        const nets::TcpRemote::PingTime ping_timeout_time
     )
     :
         io_context{},
@@ -43,7 +46,8 @@ namespace nets
                 boost::asio::ip::make_address(address),
                 port
             }
-        }
+        },
+        ping_timeout_time{ping_timeout_time}
     {
     }    
 
@@ -51,9 +55,11 @@ namespace nets
     {
         if(!is_accepting)
         {
+            is_accepting = true;
+
             accept();
 
-            return is_accepting = true;
+            return true;
         }
         else 
         {
@@ -84,7 +90,7 @@ namespace nets
     {
         if(is_accepting)
         {
-            clients.push_back({io_context});
+            clients.push_back({io_context, ping_timeout_time});
 
             acceptor.async_accept(
                 clients.back().getSocket(),
@@ -143,6 +149,8 @@ namespace nets
         {
             boost::system::error_code error;
 
+
+            client_iter->getSocket().shutdown(TcpSocket::shutdown_both);
             client_iter->getSocket().close(error);
 
             clients.erase(client_iter);
@@ -159,6 +167,7 @@ namespace nets
     {
         for(auto& client : clients)
         {
+            client.getSocket().shutdown(TcpSocket::shutdown_both);
             client.getSocket().close();
         }
 
