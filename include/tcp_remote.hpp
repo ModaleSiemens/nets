@@ -104,6 +104,15 @@ namespace nets
                 ping_response_received = true;               
             }
         ;
+
+        message_callbacks[MessageIdEnum::ping_request] = [&, this](
+                const mdsm::Collection& collection,
+                TcpRemote<MessageIdEnum>& remote
+            )
+            {
+                asyncSend(mdsm::Collection{} << MessageIdEnum::ping_response);               
+            }
+        ;        
     }
     
     template <typename MessageIdEnum>
