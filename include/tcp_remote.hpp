@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <thread>
 #include <memory>
+#include <mutex>
 
 #include <print>
 
@@ -88,6 +89,8 @@ namespace nets
             std::atomic_bool active         {true};
             std::atomic_bool socket_is_open {false};
 
+            std::mutex mutex;
+
             void startPinging();
             void stopPinging();     
 
@@ -121,7 +124,8 @@ namespace nets
         ping_delay               {ping_delay}
     {
         pinging_enabled = enable_pinging;
-        message_callbacks[MessageIdEnum::ping_request].second = enable_being_pinged;
+        message_callbacks[MessageIdEnum::ping_request].second  = enable_being_pinged;
+        message_callbacks[MessageIdEnum::ping_response].second = enable_pinging;
         receiving_messages_enabled = enable_receiving_messages;
 
 
@@ -143,7 +147,8 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
-                std::println("DEBUG: Sending ping request");
+                std::println("DEBUG: Receiving ping request");
+
                 asyncSend(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
         ;  
@@ -281,9 +286,9 @@ namespace nets
         // Transpose data to specific endianness
         const auto prepared_message_size {message.prepareDataForInserting(message_size)};
 
-        std::memcpy(message_with_header.data(), prepared_message_size.data(), sizeof(message_size));
+        std::memcpy(message_with_header.data(), prepared_message_size.data(), prepared_message_size.size());
         std::memcpy(
-            message_with_header.data() + sizeof(message_size),
+            message_with_header.data() + prepared_message_size.size(),
             message.getData(),
             message_size
         );
@@ -364,8 +369,10 @@ namespace nets
                                 {
                                     if(message_callbacks[message_id].second)
                                     {
+                                        std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
+
                                         message_callbacks[message_id].first(
-                                            read_message_data, *this
+                                            read_message_data, std::ref(*this)
                                         );
                                     }
                                     else
