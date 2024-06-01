@@ -9,11 +9,13 @@ namespace nets
     class TcpClient
     {
         public:
+            using PingTime = TcpRemote<MessageIdEnum>::PingTime;
+
             TcpClient(
                 const std::string_view          address,
                 const std::string_view          port,
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_period = TcpRemote<MessageIdEnum>::PingTime{2},
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay          = TcpRemote<MessageIdEnum>::PingTime{4}
+                const PingTime ping_timeout_period = PingTime{2},
+                const PingTime ping_delay          = PingTime{4}
             );
 
             bool connect();
@@ -48,8 +50,8 @@ namespace nets
     TcpClient<MessageIdEnum>::TcpClient(
         const std::string_view  address,
         const std::string_view  port,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay
+        const PingTime ping_timer,
+        const PingTime ping_delay
     )
     :
         io_context{},

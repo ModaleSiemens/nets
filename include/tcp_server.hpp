@@ -12,11 +12,13 @@ namespace nets
     class TcpServer
     {
         public:
+            using PingTime = TcpRemote<MessageIdEnum>::PingTime;
+
             TcpServer(
                 const nets::Port                port,
                 const nets::IPVersion           ip_version,
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_period = TcpRemote<MessageIdEnum>::PingTime{2},
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay          = TcpRemote<MessageIdEnum>::PingTime{4}
+                const PingTime ping_timeout_period = PingTime{2},
+                const PingTime ping_delay          = PingTime{4}
             );
 
             // Bind acceptor to specific address
@@ -24,8 +26,8 @@ namespace nets
                 const nets::Port                port,
                 const nets::IPVersion           ip_version,
                 const std::string_view          address,
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_period = TcpRemote<MessageIdEnum>::PingTime{2},
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay          = TcpRemote<MessageIdEnum>::PingTime{4}
+                const PingTime ping_timeout_period = PingTime{2},
+                const PingTime ping_delay          = PingTime{4}
             );            
 
             TcpServer(const TcpServer&) = delete;
@@ -58,8 +60,8 @@ namespace nets
             
             bool is_accepting {false};
 
-            nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_time;
-            nets::TcpRemote<MessageIdEnum>::PingTime ping_delay;
+            PingTime ping_timeout_time;
+            PingTime ping_delay;
 
             void accept();
 
@@ -78,8 +80,8 @@ namespace nets
     TcpServer<MessageIdEnum>::TcpServer(
         const nets::Port       port,
         const nets::IPVersion  ip_version,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_time,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay
+        const PingTime ping_timeout_time,
+        const PingTime ping_delay
     )
     :
         io_context{},
@@ -108,8 +110,8 @@ namespace nets
         const nets::Port       port,
         const nets::IPVersion  ip_version,
         const std::string_view address,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_time,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay
+        const PingTime ping_timeout_time,
+        const PingTime ping_delay
     )
     :
         io_context{},
@@ -168,7 +170,7 @@ namespace nets
     {
         if(is_accepting)
         {
-            clients.push_back({io_context, ping_timeout_time});
+            clients.emplace_back(io_context, ping_timeout_time, ping_delay);
 
             acceptor.async_accept(
                 clients.back().getSocket(),

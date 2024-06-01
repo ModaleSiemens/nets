@@ -16,7 +16,7 @@ namespace nets
     class TcpRemote
     {
         public:
-            using PingTime = std::chrono::duration<double, std::chrono::seconds>;
+            using PingTime = std::chrono::duration<double>;
             using MessageReceivedCallback = std::function<void(const mdsm::Collection& collection, TcpRemote& remote)>;
 
             //TcpRemote(nets::TcpSocket& socket);
@@ -75,8 +75,8 @@ namespace nets
 
             std::unordered_map<MessageIdEnum, MessageReceivedCallback> message_callbacks;
 
-            std::vector<std::bytes> read_message_size (sizeof(mdsm::Collection::getSize()));
-            mdsm::Collection        read_message_data;
+            std::vector<std::byte> read_message_size;
+            mdsm::Collection       read_message_data;
 
             std::atomic_bool ping_response_received;
     };
@@ -98,6 +98,8 @@ namespace nets
         ping_timeout_period{ping_timeout_period},
         ping_delay{ping_delay}
     {
+        read_message_size.resize(sizeof(mdsm::Collection::Size));
+
         message_callbacks[MessageIdEnum::ping_response] = [&, this](
                 const mdsm::Collection& collection,
                 TcpRemote<MessageIdEnum>& remote
@@ -183,7 +185,7 @@ namespace nets
 
         boost::asio::async_write(
             socket,
-            asio::buffer(message_with_header.data(), message_with_header.size()),
+            boost::asio::buffer(message_with_header.data(), message_with_header.size()),
             [&, this](const boost::system::error_code& error, const std::size_t bytes_count)
             {
                 if(error)
@@ -213,7 +215,7 @@ namespace nets
 
         boost::asio::write(
             socket,
-            asio::buffer(message_with_header.data(), message_with_header.size())
+            boost::asio::buffer(message_with_header.data(), message_with_header.size())
         );
     }
 
@@ -230,7 +232,7 @@ namespace nets
                 if(listening_enabled.load())
                 {
                     const auto message_size {
-                        mdsm::Collection::prepareDataForExtracting<decltype(mdsm::Collection::getSize())>(
+                        mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
                             read_message_size.data()
                         )
                     };
@@ -266,14 +268,14 @@ namespace nets
                                 // Message shouldn't be processed
                             }
                         }
-                    )
+                    );
                 }
                 else
                 {
                     // Message shouldn't be read
                 }
             }
-        )
+        );
     }
 
     template <typename MessageIdEnum>
@@ -287,7 +289,7 @@ namespace nets
     {
         pinging_enabled = true;
 
-        std::thread pinging_thread {
+        std::thread {
             [&, this]
             {
                 while(pinging_enabled.load())
@@ -305,12 +307,10 @@ namespace nets
                             onPingFailedSending();
                         }
                     }
-                    else 
-                    {
-                        last_ping_period = pinging_result.value();
-                    }
 
-                    std::this_thread::sleep_for(ping_delay - last_ping_period);
+                    std::this_thread::sleep_for(
+                        ping_delay - (pinging_result.has_value() ? pinging_result.value() : PingTime{0})
+                    );
                 }
             }
         }.detach();
@@ -328,7 +328,7 @@ namespace nets
 
             while(!ping_response_received)
             {
-                if((ping_sent_time + ping_timeout_period) >= std::chrono::system::now())
+                if((ping_sent_time + ping_timeout_period) >= std::chrono::system_clock::now())
                 {
                     return std::unexpected(PingError::expired);
                 }

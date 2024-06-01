@@ -33,7 +33,7 @@ int main()
         "localhost",
         "60000"
     };
-    
+
     client.connect();
 
     return 0;
