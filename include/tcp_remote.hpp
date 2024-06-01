@@ -156,6 +156,8 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
     {
+        listening_enabled =  true;
+
         boost::asio::async_read(
             socket,
             boost::asio::buffer(&read_message_size, sizeof(read_message_size)),
@@ -181,6 +183,8 @@ namespace nets
                                 message_callbacks[read_message_data.retrieve<MessageIdEnum>()](
                                     read_message_data, *this
                                 );
+
+                                startListeningForIncomingMessages();
                             }
                             else
                             {
@@ -195,6 +199,12 @@ namespace nets
                 }
             }
         )
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::stopListeningForIncomingMessages()
+    {
+        listening_enabled = false;
     }
 
     template <typename MessageIdEnum>
