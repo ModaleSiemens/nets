@@ -15,7 +15,7 @@ namespace nets
 
     enum class PingError
     {
-        espired, failed_to_send
+        expired, failed_to_send
     };
 
     template <typename MessageIdEnum>

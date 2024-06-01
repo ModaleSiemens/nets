@@ -278,7 +278,7 @@ namespace nets
 
                     if(!pinging_result.has_value())
                     {
-                        if(pinging_result.error() == MessageIdEnum::ping_timeouted)
+                        if(pinging_result.error() == PingError::expired)
                         {
                             onPingingTimeout();
                         }
@@ -312,7 +312,7 @@ namespace nets
             {
                 if((ping_sent_time + ping_timeout_period) >= std::chrono::system::now())
                 {
-                    return std::unexpected(MessageIdEnum::ping_timeouted);
+                    return std::unexpected(PingError::expired);
                 }
             }
 
@@ -322,7 +322,7 @@ namespace nets
         }
         catch(const boost::exception& e)
         {
-            return std::unexpected(MessageIdEnum::failed_to_send_ping);
+            return std::unexpected(PingError::failed_to_send);
         }
     }
 
