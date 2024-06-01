@@ -5,22 +5,22 @@
 
 namespace nets
 {
-    template <template MessageIdEnum>
+    template <typename MessageIdEnum>
     class TcpClient
     {
         public:
             TcpClient(
                 const std::string_view          address,
                 const std::string_view          port,
-                const nets::TcpRemote::PingTime ping_timer = TcpRemote::PingTime{3}
+                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer = TcpRemote<MessageIdEnum>::PingTime{3}
             );
 
             bool connect();
             bool disconnect();
 
-            virtual void onConnection(nets::TcpRemote& server) = 0;
-            virtual void onDisconnection(nets::TcpRemote& server) = 0;
-            virtual void process(nets::TcpRemote& server);
+            virtual void onConnection(nets::TcpRemote<MessageIdEnum>& server) = 0;
+            virtual void onDisconnection(nets::TcpRemote<MessageIdEnum>& server) = 0;
+            virtual void process(nets::TcpRemote<MessageIdEnum>& server);
 
             std::string_view getServerAddress();
             nets::Port       getServerPort   ();
@@ -33,7 +33,7 @@ namespace nets
             const std::string address;
             const std::string port;
 
-            nets::TcpRemote server;
+            nets::TcpRemote<MessageIdEnum> server;
 
             bool is_connected {false};
     };
@@ -43,11 +43,11 @@ namespace nets
 
 namespace nets
 {
-    template <template MessageIdEnum>
-    TcpClient::TcpClient(
+    template <typename MessageIdEnum>
+    TcpClient<MessageIdEnum>::TcpClient(
         const std::string_view  address,
         const std::string_view  port,
-        const nets::TcpRemote::PingTime ping_timer
+        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer
     )
     :
         io_context{},
@@ -59,8 +59,8 @@ namespace nets
     {
     }
 
-    template <template MessageIdEnum>
-    bool TcpClient::connect()
+    template <typename MessageIdEnum>
+    bool TcpClient<MessageIdEnum>::connect()
     {
         if(!is_connected)
         {
@@ -95,8 +95,8 @@ namespace nets
         }
     }
 
-    template <template MessageIdEnum>
-    bool TcpClient::disconnect()
+    template <typename MessageIdEnum>
+    bool TcpClient<MessageIdEnum>::disconnect()
     {
         if(is_connected)
         {
@@ -112,8 +112,8 @@ namespace nets
         }
     }
 
-    template <template MessageIdEnum>
-    void TcpClient::process(nets::TcpRemote& server)
+    template <typename MessageIdEnum>
+    void TcpClient<MessageIdEnum>::process(nets::TcpRemote<MessageIdEnum>& server)
     {
 
     }

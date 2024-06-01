@@ -24,6 +24,4 @@ namespace nets
 
     class TcpRemote;
     class UdpRemote;
-
-    class TcpSender;
 }
