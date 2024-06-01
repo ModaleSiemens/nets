@@ -1,12 +1,14 @@
 tests = [
     [
         'Test1',
-        'test1.cpp',
-
+        'test1.cpp'
+    ],
+    [
         'ServerTest',
-        'tcp_server.cpp',
-
-        'ClienTest',
+        'tcp_server.cpp'
+    ],
+    [
+        'ClientTest',
         'tcp_client.cpp'
     ]
 ]
@@ -16,6 +18,11 @@ foreach test : tests
         test[0],
         test[1],
 
-        dependencies: lib_nets_dep
+        dependencies: lib_nets_dep,
+
+        link_args: 
+        [
+            '-lstdc++exp' # Enable std::print, std::println
+        ]
     )
 endforeach
