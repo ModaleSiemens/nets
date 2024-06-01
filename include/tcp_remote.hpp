@@ -27,6 +27,7 @@ namespace nets
             );
 
             void asyncSend(const mdsm::Collection& message);
+            void syncSend(const mdsm::Collection& message);
 
             void onFailedSending(const mdsm::Collection& message) {};
 
@@ -43,8 +44,8 @@ namespace nets
             void startListeningForPings();
             void stopListeningForPings();
 
-            virtual void onPingingTimeout() {};
-            virtual void onSuccessfulPing() {};
+            virtual void onPingingTimeout()   {};
+            virtual void onPingFailedSending() {};
 
             std::expected<PingTime, nets::PingError> ping(const PingTime period = PingTime{0});
 
@@ -75,10 +76,7 @@ namespace nets
             std::vector<std::bytes> read_message_size (sizeof(mdsm::Collection::getSize()));
             mdsm::Collection        read_message_data;
 
-            //std::atomic_bool received_ping_response {false};
-            //PingTime         last_ping_sent;
-            PingTime         last_ping_period;
-            //std::atomic_bool last_ping_failed {false};
+            std::atomic_bool ping_response_received;
     };
 }
 
@@ -103,16 +101,7 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
-                if(!last_ping_failed.load())
-                {
-                    received_ping_response = true;
-
-                    last_ping_period = std::chrono::system_clock::now() - last_ping_sent;
-                }
-
-                std::this_thread::sleep_for(ping_delay);
-
-                last_ping_failed = false;                
+                ping_response_received = true;               
             }
         ;
     }
@@ -190,6 +179,29 @@ namespace nets
     }
 
     template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::syncSend(const mdsm::Collection& message)
+    {
+        const auto message_size {message.getSize()};
+
+        std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
+
+        // Transpose data to specific endianness
+        const auto prepared_message_size {message.prepareDataForInserting(message_size)};
+
+        std::memcpy(message_with_header.data(), prepared_message_size.data(), sizeof(message_size));
+        std::memcpy(
+            message_with_header.data() + sizeof(message_size),
+            message.getData(),
+            message_size
+        );
+
+        boost::asio::write(
+            socket,
+            asio::buffer(message_with_header.data(), message_with_header.size())
+        );
+    }
+
+    template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
     {
         listening_enabled =  true;
@@ -257,9 +269,13 @@ namespace nets
 
                     if(!pinging_result.has_value())
                     {
-                        if(pinging_result.error() == PingError::espired)
+                        if(pinging_result.error() == MessageIdEnum::ping_timeouted)
                         {
                             onPingingTimeout();
+                        }
+                        else 
+                        {
+                            onPingFailedSending();
                         }
                     }
                     else 
@@ -271,35 +287,34 @@ namespace nets
                 }
             }
         }.detach();
-
-        /*
-        pinging_enabled = true;
-
-        boost::asio::steady_timer timer {io_context, ping_timeout_period};
-
-        asyncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
-
-        last_ping_sent = std::chrono::system_clock::now();
-
-        timer.async_wait(
-            [&, this](const boost::system::error_code& error)
-            {
-                if(!received_ping_response.load())
-                {
-                    last_ping_failed = true;
-
-                    onPingingTimeout();
-                }
-            }
-        )
-        */
     }
 
     template <typename MessageIdEnum>
     std::expected<typename TcpRemote<MessageIdEnum>::PingTime, nets::PingError>
         TcpRemote<MessageIdEnum>::ping(const PingTime period)
     {
-        
+        try
+        {
+            syncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
+
+            const auto ping_sent_time {std::chrono::system_clock::now()};
+
+            while(!ping_response_received)
+            {
+                if((ping_sent_time + ping_timeout_period) >= std::chrono::system::now())
+                {
+                    return std::unexpected(MessageIdEnum::ping_timeouted);
+                }
+            }
+
+            ping_response_received = false;
+
+            return std::chrono::system_clock::now() - ping_sent_time;
+        }
+        catch(const boost::exception& e)
+        {
+            return std::unexpected(MessageIdEnum::failed_to_send_ping);
+        }
     }
 
     template <typename MessageIdEnum>
