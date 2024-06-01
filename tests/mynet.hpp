@@ -7,5 +7,8 @@ enum class MessageIds
 
 class Remote : public nets::TcpRemote<MessageIds>
 {
-    
+    void initialize() override
+    {
+        startPinging();
+    }
 };

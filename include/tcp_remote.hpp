@@ -67,8 +67,9 @@ namespace nets
             std::string address;
             nets::Port  port;
 
-            std::atomic_bool pinging_enabled    {false};
-            std::atomic_bool listening_enabled  {true};
+            std::atomic_bool pinging_enabled             {false};
+            std::atomic_bool listening_enabled           {true};
+            std::atomic_bool listening_for_pings_enabled {true};
 
             PingTime ping_timeout_period;
             PingTime ping_delay;
@@ -118,7 +119,22 @@ namespace nets
             }
         ;  
 
+        startListeningForIncomingMessages();
+        startListeningForPings();
+
         initialize();      
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::startListeningForPings()
+    {
+        listening_for_pings_enabled = true;
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::stopListeningForPings()
+    {
+        listening_for_pings_enabled = false;
     }
 
     template <typename MessageIdEnum>
