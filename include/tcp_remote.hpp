@@ -29,8 +29,11 @@ namespace nets
 
             void setPingingTimeoutPeriod(const PingTime period);
 
-            void enablePinging();
-            void disablePinging();
+            void startListeningForIncomingMessages();
+            void stopListeningForIncomingMessages();
+
+            void startPinging();
+            void stopPinging();
 
             virtual void onPingingTimeout() {};
             virtual void onSuccessfulPing() {};
@@ -114,5 +117,41 @@ namespace nets
     bool TcpRemote<MessageIdEnum>::operator==(const TcpRemote& remote)
     {
         return getAddress() == remote.getAddress() && getPort() == remote.getPort();
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::asyncSend(const mdsm::Collection& message)
+    {
+        const auto message_size {message.getSize()};
+
+        std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
+
+        // Transpose data to specific endianness
+        const auto prepared_message_size {message.prepareDataForInserting(message_size)};
+
+        std::memcpy(message_with_header.data(), prepared_message_size.data(), sizeof(message_size));
+        std::memcpy(
+            message_with_header.data() + sizeof(message_size),
+            message.getData(),
+            message_size
+        );
+
+        boost::asio::async_write(
+            socket,
+            asio::buffer(message_with_header.data(), message_with_header.size()),
+            [&, this](const boost::system::error_code& error, const std::size_t bytes_count)
+            {
+                if(error)
+                {
+                    onFailedSending(message);
+                }
+            }
+        );
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::setOnReceiving(const MessageIdEnum message_id, const MessageReceivedCallback& callback)
+    {
+        message_callbacks[message_id] = callback;
     }
 }

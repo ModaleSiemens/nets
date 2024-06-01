@@ -7,7 +7,6 @@ namespace nets
     using Port = boost::asio::ip::port_type;
 
     using TcpSocket = boost::asio::ip::tcp::socket;
-    using UdpSocket = boost::asio::ip::udp::socket;
 
     enum class IPVersion
     {
@@ -19,9 +18,12 @@ namespace nets
         espired, failed_to_send
     };
 
+    template <typename MessageIdEnum>
     class TcpServer;
+
+    template <typename MessageIdEnum>
     class TcpClient;
 
+    template <typename MessageIdEnum>
     class TcpRemote;
-    class UdpRemote;
 }
