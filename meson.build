@@ -19,6 +19,9 @@ if host_machine.system() == 'windows'
     sockets_dep += meson.get_compiler('cpp').find_library(
         'ws2_32'
     )
+    sockets_dep += meson.get_compiler('cpp').find_library(
+        'wsock32'
+    )
 endif
 
 deps = [

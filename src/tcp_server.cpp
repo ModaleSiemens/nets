@@ -1,6 +1,7 @@
 #include "../include/tcp_server.hpp"
-
 #include "../include/tcp_remote.hpp"
+
+#include <functional>
 
 namespace nets
 {
@@ -20,6 +21,12 @@ namespace nets
             }
         }
     {
+        std::thread {
+            [this]
+            {
+                io_context.run();
+            }
+        }.detach();
     }
 
     TcpServer::TcpServer(
@@ -84,8 +91,8 @@ namespace nets
                 std::bind(
                     &TcpServer::handleAccepting,
                     this,
-                    clients.back(),
-                    std::placeholders::_1
+                    std::ref(clients.back()),
+                    boost::asio::placeholders::error
                 )
             );
         }

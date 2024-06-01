@@ -9,11 +9,6 @@ namespace nets
     using TcpSocket = boost::asio::ip::tcp::socket;
     using UdpSocket = boost::asio::ip::udp::socket;
 
-    enum class AddressKind
-    {
-        dns, raw
-    };
-
     enum class IPVersion
     {
         ipv4, ipv6
