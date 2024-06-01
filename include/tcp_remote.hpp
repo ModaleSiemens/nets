@@ -5,6 +5,7 @@
 #include <atomic>
 #include <functional>
 #include <unordered_map>
+#include <thread>
 
 #include "types.hpp"
 #include "../subprojects/collection/include/collection.hpp"
@@ -39,10 +40,13 @@ namespace nets
             void startPinging();
             void stopPinging();
 
+            void startListeningForPings();
+            void stopListeningForPings();
+
             virtual void onPingingTimeout() {};
             virtual void onSuccessfulPing() {};
 
-            std::expected<PingTime, nets::PingError> ping(const PingTime period);
+            std::expected<PingTime, nets::PingError> ping(const PingTime period = PingTime{0});
 
             std::string getAddress() const;
             nets::Port  getPort()    const;
@@ -71,10 +75,10 @@ namespace nets
             std::vector<std::bytes> read_message_size (sizeof(mdsm::Collection::getSize()));
             mdsm::Collection        read_message_data;
 
-            std::atomic_bool received_ping_response {false};
-            PingTime         last_ping_sent;
+            //std::atomic_bool received_ping_response {false};
+            //PingTime         last_ping_sent;
             PingTime         last_ping_period;
-            std::atomic_bool last_ping_failed {false};
+            //std::atomic_bool last_ping_failed {false};
     };
 }
 
@@ -244,6 +248,33 @@ namespace nets
     {
         pinging_enabled = true;
 
+        std::thread pinging_thread {
+            [&, this]
+            {
+                while(pinging_enabled.load())
+                {
+                    const auto pinging_result {ping()};
+
+                    if(!pinging_result.has_value())
+                    {
+                        if(pinging_result.error() == PingError::espired)
+                        {
+                            onPingingTimeout();
+                        }
+                    }
+                    else 
+                    {
+                        last_ping_period = pinging_result.value();
+                    }
+
+                    std::this_thread::sleep_for(ping_delay - last_ping_period);
+                }
+            }
+        }.detach();
+
+        /*
+        pinging_enabled = true;
+
         boost::asio::steady_timer timer {io_context, ping_timeout_period};
 
         asyncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
@@ -261,6 +292,20 @@ namespace nets
                 }
             }
         )
+        */
+    }
+
+    template <typename MessageIdEnum>
+    std::expected<typename TcpRemote<MessageIdEnum>::PingTime, nets::PingError>
+        TcpRemote<MessageIdEnum>::ping(const PingTime period)
+    {
+        
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::stopPinging()
+    {
+        pinging_enabled = false;
     }
 
     template <typename MessageIdEnum>
