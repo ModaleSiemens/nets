@@ -1,13 +1,15 @@
 #include "../include/nets.hpp"
 
+#include "mynet.hpp"
+
 #include <print>
 
-class Client : public nets::TcpClient
+class Client : public nets::TcpClient<MessageIds>
 {
     public:
         using TcpClient::TcpClient;
 
-        virtual void onConnection(nets::TcpRemote& server) override
+        virtual void onConnection(nets::TcpRemote<MessageIds>& server) override
         {
             std::println("Connected to server!");
 

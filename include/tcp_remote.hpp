@@ -136,13 +136,16 @@ namespace nets
     template <typename MessageIdEnum>
     bool TcpRemote<MessageIdEnum>::connectionIsOpen()
     {
-        std::string empty_string {""};
+        try
+        {
+            syncSend(mdsm::Collection{} << MessageIdEnum::probe);
 
-        boost::system::error_code error;
-
-        boost::asio::read(socket, boost::asio::buffer(empty_string), error);
-
-        return !error;
+            return true;
+        }
+        catch(boost::exception& e)
+        {
+            return false;
+        }
     }
 
     template <typename MessageIdEnum>
@@ -237,9 +240,20 @@ namespace nets
                         {
                             if(listening_enabled.load())
                             {
-                                message_callbacks[read_message_data.retrieve<MessageIdEnum>()](
-                                    read_message_data, *this
-                                );
+                                const auto message_id {
+                                    read_message_data.retrieve<MessageIdEnum>()
+                                };
+
+                                if(message_callbacks.contains(message_id))
+                                {
+                                    message_callbacks[message_id](
+                                        read_message_data, *this
+                                    );
+                                }
+                                else 
+                                {
+                                    // No callback found for received message id
+                                }
 
                                 startListeningForIncomingMessages();
                             }
