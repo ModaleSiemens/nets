@@ -25,8 +25,11 @@ namespace nets
             //TcpRemote(nets::TcpSocket& socket);
             TcpRemote(
                 boost::asio::io_context& io_context,
-                const PingTime ping_timeout_period,
-                const PingTime ping_delay
+                const PingTime           ping_timeout_period,
+                const PingTime           ping_delay,
+                const bool               enable_pinging = true,
+                const bool               enable_being_pinged = true,
+                const bool               enable_receiving_messages = true
             );
 
             void enablePinging          (const bool value = true);
@@ -69,8 +72,8 @@ namespace nets
             std::string address;
             nets::Port  port;
 
-            std::atomic_bool pinging_enabled            {false};
-            std::atomic_bool receiving_messages_enabled {true};
+            std::atomic_bool pinging_enabled;
+            std::atomic_bool receiving_messages_enabled;
 
             PingTime ping_timeout_period;
             PingTime ping_delay;
@@ -106,14 +109,22 @@ namespace nets
     TcpRemote<MessageIdEnum>::TcpRemote(
         boost::asio::io_context& io_context,
         const PingTime ping_timeout_period,
-        const PingTime ping_delay
+        const PingTime ping_delay,
+        const bool enable_pinging,
+        const bool enable_being_pinged,
+        const bool enable_receiving_messages
     )
     :
-        io_context{io_context},
-        socket{io_context},
-        ping_timeout_period{ping_timeout_period},
-        ping_delay{ping_delay}
+        io_context               {io_context},
+        socket                   {io_context},
+        ping_timeout_period      {ping_timeout_period},
+        ping_delay               {ping_delay}
     {
+        pinging_enabled = enable_pinging;
+        message_callbacks[MessageIdEnum::ping_request].second = enable_being_pinged;
+        receiving_messages_enabled = enable_receiving_messages;
+
+
         read_message_size.resize(sizeof(mdsm::Collection::Size));
 
         message_callbacks[MessageIdEnum::ping_response].first = [&, this](
@@ -326,7 +337,7 @@ namespace nets
             {
                 if(receiving_messages_enabled.load())
                 {
-                    std::println("DEBUG: Reading message size");
+                    //std::println("DEBUG: Reading message size");
 
                     const auto message_size {
                         mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
@@ -338,12 +349,12 @@ namespace nets
 
                     boost::asio::async_read(
                         socket,
-                        boost::asio::buffer(&read_message_data, message_size),
+                        boost::asio::buffer(read_message_data.getData(), message_size),
                         [&, this](const boost::system::error_code error, const std::size_t bytes_count)
                         {
                             if(receiving_messages_enabled.load())
                             {
-                                std::println("DEBUG: Reading message body");
+                                //std::println("DEBUG: Reading message body");
 
                                 const auto message_id {
                                     read_message_data.retrieve<MessageIdEnum>()
