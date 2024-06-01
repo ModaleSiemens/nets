@@ -20,6 +20,11 @@ class Client : public nets::TcpClient<MessageIds>
 
             std::println("Server closed connection...");
         }
+
+        virtual void onDisconnection(nets::TcpRemote<MessageIds>& server) override
+        {
+            std::println("Disconnected...");
+        }
 };
 
 int main()
@@ -28,7 +33,7 @@ int main()
         "localhost",
         "60000"
     };
-
+    
     client.connect();
 
     return 0;

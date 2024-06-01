@@ -25,6 +25,8 @@ namespace nets
                 const PingTime ping_timeout_period,
                 const PingTime ping_delay
             );
+            
+            virtual void initialize() {}
 
             void asyncSend(const mdsm::Collection& message);
             void syncSend(const mdsm::Collection& message);
@@ -112,9 +114,11 @@ namespace nets
             {
                 asyncSend(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
-        ;        
+        ;  
+
+        initialize();      
     }
-    
+
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::setPingingTimeoutPeriod(const PingTime t_ping_timeout_period)
     {

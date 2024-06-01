@@ -12,7 +12,8 @@ namespace nets
             TcpClient(
                 const std::string_view          address,
                 const std::string_view          port,
-                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer = TcpRemote<MessageIdEnum>::PingTime{3}
+                const nets::TcpRemote<MessageIdEnum>::PingTime ping_timeout_period = TcpRemote<MessageIdEnum>::PingTime{2},
+                const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay          = TcpRemote<MessageIdEnum>::PingTime{4}
             );
 
             bool connect();
@@ -47,7 +48,8 @@ namespace nets
     TcpClient<MessageIdEnum>::TcpClient(
         const std::string_view  address,
         const std::string_view  port,
-        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer
+        const nets::TcpRemote<MessageIdEnum>::PingTime ping_timer,
+        const nets::TcpRemote<MessageIdEnum>::PingTime ping_delay
     )
     :
         io_context{},
@@ -55,7 +57,7 @@ namespace nets
         address{address},
         port{port},
 
-        server{io_context, ping_timer}
+        server{io_context, ping_timer, ping_delay}
     {
     }
 
@@ -102,6 +104,7 @@ namespace nets
         {
             boost::system::error_code error;
 
+            server.getSocket().shutdown(TcpSocket::shutdown_both);
             server.getSocket().close(error);
 
             return !error;
