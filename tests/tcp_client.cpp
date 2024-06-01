@@ -2,42 +2,32 @@
 
 #include <print>
 
-class Server : public nets::TcpServer
+class Client : public nets::TcpClient
 {
     public:
-        using TcpServer::TcpServer;
+        using TcpClient::TcpClient;
 
-        virtual void onClientConnection(nets::TcpRemote& client) override
+        virtual void onConnection(nets::TcpRemote& server) override
         {
-            std::println("Client connected!");
+            std::println("Connected to server!");
 
-            closeConnection(client);
+            while(server.connectionIsOpen())
+            {
 
-            std::println("Closed connection...");
-        }
+            }
 
-        virtual void onForbiddenClientConnection(nets::TcpRemote& client) override
-        {
-            std::println("Client connected while server wasn't accepting requests...");
-
-            closeConnection(client);
-
-            std::println("Closed connection...");
+            std::println("Server closed connection...");
         }
 };
 
 int main()
 {
-    Server server {
-        60'000,
-        nets::IPVersion::ipv4
+    Client client {
+        "localhost",
+        "60000"
     };
 
-    server.startAccepting();
-
-    while(true)
-    {
-    }
+    client.connect();
 
     return 0;
 }
