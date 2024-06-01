@@ -8,7 +8,7 @@
 
 namespace nets
 {
-    template <typename MessageIdEnum>
+    template <typename MessageIdEnum, typename Remote = nets::TcpRemote<MessageIdEnum>>
     class TcpServer
     {
         public:
@@ -37,18 +37,18 @@ namespace nets
             bool startAccepting();
             bool stopAccepting ();
 
-            virtual void onClientConnection(nets::TcpRemote<MessageIdEnum>& client) = 0;
+            virtual void onClientConnection(Remote& client) = 0;
             
             // Client connected when server wasn't accepting requests
-            virtual void onForbiddenClientConnection(nets::TcpRemote<MessageIdEnum>& client) = 0; 
+            virtual void onForbiddenClientConnection(Remote& client) = 0; 
 
-            bool closeConnection(nets::TcpRemote<MessageIdEnum>& client);
+            bool closeConnection(Remote& client);
             void closeAllConnections();
 
             size_t getClientsCount();
 
-            std::list<nets::TcpRemote<MessageIdEnum>>&       getClients();
-            const std::list<nets::TcpRemote<MessageIdEnum>>& getClients() const;
+            std::list<Remote>&       getClients();
+            const std::list<Remote>& getClients() const;
 
             ~TcpServer();
         
@@ -76,8 +76,8 @@ namespace nets
 
 namespace nets
 {
-    template <typename MessageIdEnum>
-    TcpServer<MessageIdEnum>::TcpServer(
+    template <typename MessageIdEnum, typename Remote>
+    TcpServer<MessageIdEnum, Remote>::TcpServer(
         const nets::Port       port,
         const nets::IPVersion  ip_version,
         const PingTime ping_timeout_time,
@@ -105,8 +105,8 @@ namespace nets
         }.detach();
     }
 
-    template <typename MessageIdEnum>
-    TcpServer<MessageIdEnum>::TcpServer(
+    template <typename MessageIdEnum, typename Remote>
+    TcpServer<MessageIdEnum, Remote>::TcpServer(
         const nets::Port       port,
         const nets::IPVersion  ip_version,
         const std::string_view address,
@@ -128,8 +128,8 @@ namespace nets
     {
     }    
 
-    template <typename MessageIdEnum>
-    bool TcpServer<MessageIdEnum>::startAccepting()
+    template <typename MessageIdEnum, typename Remote>
+    bool TcpServer<MessageIdEnum, Remote>::startAccepting()
     {
         if(!is_accepting)
         {
@@ -145,8 +145,8 @@ namespace nets
         }
     }
 
-    template <typename MessageIdEnum>
-    bool TcpServer<MessageIdEnum>::stopAccepting()
+    template <typename MessageIdEnum, typename Remote>
+    bool TcpServer<MessageIdEnum, Remote>::stopAccepting()
     {
         if(is_accepting)
         {
@@ -165,8 +165,8 @@ namespace nets
         }
     }    
 
-    template <typename MessageIdEnum>
-    void TcpServer<MessageIdEnum>::accept()
+    template <typename MessageIdEnum, typename Remote>
+    void TcpServer<MessageIdEnum, Remote>::accept()
     {
         if(is_accepting)
         {
@@ -175,7 +175,7 @@ namespace nets
             acceptor.async_accept(
                 clients.back().getSocket(),
                 std::bind(
-                    &TcpServer<MessageIdEnum>::handleAccepting,
+                    &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
                     std::ref(clients.back()),
                     boost::asio::placeholders::error
@@ -184,8 +184,8 @@ namespace nets
         }
     }
 
-    template <typename MessageIdEnum>
-    void TcpServer<MessageIdEnum>::handleAccepting(
+    template <typename MessageIdEnum, typename Remote>
+    void TcpServer<MessageIdEnum, Remote>::handleAccepting(
         TcpRemote<MessageIdEnum>& client,
         const boost::system::error_code& error
     )
@@ -205,26 +205,26 @@ namespace nets
         accept();
     }
 
-    template <typename MessageIdEnum>
-    size_t TcpServer<MessageIdEnum>::getClientsCount()
+    template <typename MessageIdEnum, typename Remote>
+    size_t TcpServer<MessageIdEnum, Remote>::getClientsCount()
     {
         return clients.size();
     }
 
-    template <typename MessageIdEnum>
-    std::list<nets::TcpRemote<MessageIdEnum>>& TcpServer<MessageIdEnum>::getClients()
+    template <typename MessageIdEnum, typename Remote>
+    std::list<Remote>& TcpServer<MessageIdEnum, Remote>::getClients()
     {
         return clients;
     }
 
-    template <typename MessageIdEnum>
-    const std::list<nets::TcpRemote<MessageIdEnum>>& TcpServer<MessageIdEnum>::getClients() const
+    template <typename MessageIdEnum, typename Remote>
+    const std::list<Remote>& TcpServer<MessageIdEnum, Remote>::getClients() const
     {
         return clients;
     }    
 
-    template <typename MessageIdEnum>
-    bool TcpServer<MessageIdEnum>::closeConnection(nets::TcpRemote<MessageIdEnum>& client)
+    template <typename MessageIdEnum, typename Remote>
+    bool TcpServer<MessageIdEnum, Remote>::closeConnection(Remote& client)
     {
         const auto client_iter {
             std::find(clients.begin(), clients.end(), client)
@@ -247,8 +247,8 @@ namespace nets
         }
     }
 
-    template <typename MessageIdEnum>
-    void TcpServer<MessageIdEnum>::closeAllConnections()
+    template <typename MessageIdEnum, typename Remote>
+    void TcpServer<MessageIdEnum, Remote>::closeAllConnections()
     {
         for(auto& client : clients)
         {
@@ -259,8 +259,8 @@ namespace nets
         clients.clear();
     }
 
-    template <typename MessageIdEnum>
-    TcpServer<MessageIdEnum>::~TcpServer()
+    template <typename MessageIdEnum, typename Remote>
+    TcpServer<MessageIdEnum, Remote>::~TcpServer()
     {
         stopAccepting();
         closeAllConnections();

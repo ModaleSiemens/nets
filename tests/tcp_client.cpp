@@ -4,12 +4,12 @@
 
 #include <print>
 
-class Client : public nets::TcpClient<MessageIds>
+class Client : public nets::TcpClient<MessageIds, Remote>
 {
     public:
         using TcpClient::TcpClient;
 
-        virtual void onConnection(nets::TcpRemote<MessageIds>& server) override
+        virtual void onConnection(Remote& server) override
         {
             std::println("Connected to server!");
 
@@ -21,7 +21,7 @@ class Client : public nets::TcpClient<MessageIds>
             std::println("Server closed connection...");
         }
 
-        virtual void onDisconnection(nets::TcpRemote<MessageIds>& server) override
+        virtual void onDisconnection(Remote& server) override
         {
             std::println("Disconnected...");
         }

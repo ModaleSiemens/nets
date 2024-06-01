@@ -18,10 +18,10 @@ namespace nets
         expired, failed_to_send
     };
 
-    template <typename MessageIdEnum>
+    template <typename MessageIdEnum, typename Remote>
     class TcpServer;
 
-    template <typename MessageIdEnum>
+    template <typename MessageIdEnum, typename Remote>
     class TcpClient;
 
     template <typename MessageIdEnum>

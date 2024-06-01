@@ -31,7 +31,7 @@ namespace nets
             void asyncSend(const mdsm::Collection& message);
             void syncSend(const mdsm::Collection& message);
 
-            void onFailedSending(const mdsm::Collection& message) {};
+            virtual void onFailedSending(const mdsm::Collection& message) {};
 
             void setOnReceiving(const MessageIdEnum message_id, const MessageReceivedCallback& callback);
 
