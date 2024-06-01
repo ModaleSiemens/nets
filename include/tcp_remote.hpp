@@ -19,7 +19,11 @@ namespace nets
             using MessageReceivedCallback = std::function<void(const mdsm::Collection& collection, TcpRemote& remote)>;
 
             //TcpRemote(nets::TcpSocket& socket);
-            TcpRemote(boost::asio::io_context& io_context, const PingTime ping_timeout_period);
+            TcpRemote(
+                boost::asio::io_context& io_context,
+                const PingTime ping_timeout_period,
+                const PingTime ping_delay
+            );
 
             void asyncSend(const mdsm::Collection& message);
 
@@ -60,11 +64,17 @@ namespace nets
             std::atomic_bool listening_enabled  {true};
 
             PingTime ping_timeout_period;
+            PingTime ping_delay;
 
             std::unordered_map<MessageIdEnum, MessageReceivedCallback> message_callbacks;
 
             std::vector<std::bytes> read_message_size (sizeof(mdsm::Collection::getSize()));
             mdsm::Collection        read_message_data;
+
+            std::atomic_bool received_ping_response {false};
+            PingTime         last_ping_sent;
+            PingTime         last_ping_period;
+            std::atomic_bool last_ping_failed {false};
     };
 }
 
@@ -73,12 +83,34 @@ namespace nets
 namespace nets
 {
     template <typename MessageIdEnum>
-    TcpRemote<MessageIdEnum>::TcpRemote(boost::asio::io_context& io_context, const PingTime ping_timeout_period)
+    TcpRemote<MessageIdEnum>::TcpRemote(
+        boost::asio::io_context& io_context,
+        const PingTime ping_timeout_period,
+        const PingTime ping_delay
+    )
     :
         io_context{io_context},
         socket{io_context},
-        ping_timeout_period{ping_timeout_period}
+        ping_timeout_period{ping_timeout_period},
+        ping_delay{ping_delay}
     {
+        message_callbacks[MessageIdEnum::ping_response] = [&, this](
+                const mdsm::Collection& collection,
+                TcpRemote<MessageIdEnum>& remote
+            )
+            {
+                if(!last_ping_failed.load())
+                {
+                    received_ping_response = true;
+
+                    last_ping_period = std::chrono::system_clock::now() - last_ping_sent;
+                }
+
+                std::this_thread::sleep_for(ping_delay);
+
+                last_ping_failed = false;                
+            }
+        ;
     }
     
     template <typename MessageIdEnum>
@@ -205,6 +237,30 @@ namespace nets
     void TcpRemote<MessageIdEnum>::stopListeningForIncomingMessages()
     {
         listening_enabled = false;
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::startPinging()
+    {
+        pinging_enabled = true;
+
+        boost::asio::steady_timer timer {io_context, ping_timeout_period};
+
+        asyncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
+
+        last_ping_sent = std::chrono::system_clock::now();
+
+        timer.async_wait(
+            [&, this](const boost::system::error_code& error)
+            {
+                if(!received_ping_response.load())
+                {
+                    last_ping_failed = true;
+
+                    onPingingTimeout();
+                }
+            }
+        )
     }
 
     template <typename MessageIdEnum>
