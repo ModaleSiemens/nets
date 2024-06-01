@@ -10,15 +10,17 @@ enum class MessageIds
 class Remote : public nets::TcpRemote<MessageIds>
 {
     public:
-        using nets::TcpRemote<MessageIds>::TcpRemote;
-
-        void initialize() override
+        Remote(
+            boost::asio::io_context& io_context,
+            const PingTime ping_timeout_period,
+            const PingTime ping_delay
+        )
+        :
+            TcpRemote(io_context, ping_timeout_period, ping_delay)
         {
-            std::println("Initializing.");
-
+            enableBeingPinged();
             enablePinging();
             enableReceivingMessages();
-            enableBeingPinged();
         }
 
         void onFailedSending(const mdsm::Collection& message) override

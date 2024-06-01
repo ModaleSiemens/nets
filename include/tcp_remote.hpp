@@ -32,8 +32,6 @@ namespace nets
             void enableReceivingMessages(const bool value = true);
 
             ~TcpRemote();
-            
-            virtual void initialize() {}
 
             void asyncSend(const mdsm::Collection& message);
             void syncSend(const mdsm::Collection& message);
@@ -133,8 +131,6 @@ namespace nets
         ;  
 
         startListeningForPings();
-
-        initialize();
 
         std::thread {
             [&, this]
