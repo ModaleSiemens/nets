@@ -7,7 +7,7 @@
 class Client : public nets::TcpClient<MessageIds, Remote>
 {
     public:
-        using TcpClient::TcpClient;
+        using TcpClient<MessageIds, Remote>::TcpClient;
 
         virtual void onConnection(Remote& server) override
         {

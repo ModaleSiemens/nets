@@ -9,7 +9,7 @@ namespace nets
     class TcpClient
     {
         public:
-            using PingTime = TcpRemote::PingTime;
+            using PingTime = Remote::PingTime;
 
             TcpClient(
                 const std::string_view          address,

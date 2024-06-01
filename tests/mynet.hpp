@@ -9,23 +9,26 @@ enum class MessageIds
 
 class Remote : public nets::TcpRemote<MessageIds>
 {
-    void initialize() override
-    {
-        startPinging();
-    }
+    public:
+        using nets::TcpRemote<MessageIds>::TcpRemote;
 
-    void onFailedSending(const mdsm::Collection& message) override
-    {
-        std::println("Failed to send message...");
-    }
+        void initialize() override
+        {
+            startPinging();
+        }
 
-    void onPingingTimeout() override
-    {
-        std::println("Server didn't respond in time...");
-    }
+        void onFailedSending(const mdsm::Collection& message) override
+        {
+            std::println("Failed to send message...");
+        }
 
-    void onPingFailedSending() override
-    {
-        std::println("Failed to send ping...");
-    }
+        void onPingingTimeout() override
+        {
+            std::println("Server didn't respond in time...");
+        }
+
+        void onPingFailedSending() override
+        {
+            std::println("Failed to send ping...");
+        }
 };

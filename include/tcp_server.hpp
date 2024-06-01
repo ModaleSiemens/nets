@@ -12,7 +12,7 @@ namespace nets
     class TcpServer
     {
         public:
-            using PingTime = TcpRemote<MessageIdEnum>::PingTime;
+            using PingTime = Remote::PingTime;
 
             TcpServer(
                 const nets::Port                port,
@@ -56,7 +56,7 @@ namespace nets
             boost::asio::io_context        io_context;
             boost::asio::ip::tcp::acceptor acceptor;
 
-            std::list<TcpRemote<MessageIdEnum>> clients;
+            std::list<Remote> clients;
             
             bool is_accepting {false};
 
@@ -66,8 +66,8 @@ namespace nets
             void accept();
 
             void handleAccepting(
-                TcpRemote<MessageIdEnum>& client,
-                const boost::system::error_code& error
+                Remote& client,
+                boost::system::error_code error
             );
     };
 }
@@ -178,7 +178,7 @@ namespace nets
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
                     std::ref(clients.back()),
-                    boost::asio::placeholders::error
+                    std::placeholders::_1
                 )
             );
         }
@@ -186,8 +186,8 @@ namespace nets
 
     template <typename MessageIdEnum, typename Remote>
     void TcpServer<MessageIdEnum, Remote>::handleAccepting(
-        TcpRemote<MessageIdEnum>& client,
-        const boost::system::error_code& error
+        Remote& client,
+        boost::system::error_code error
     )
     {
         if(!error)

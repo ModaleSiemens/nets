@@ -4,21 +4,23 @@
 
 #include <print>
 
-class Server : public nets::TcpServer<MessageIds>
+class Server : public nets::TcpServer<MessageIds, Remote>
 {
     public:
-        using TcpServer::TcpServer;
+        using TcpServer<MessageIds, Remote>::TcpServer;
 
-        virtual void onClientConnection(nets::TcpRemote<MessageIds>& client) override
+        virtual void onClientConnection(Remote& client) override
         {
             std::println("Client connected!");
 
-            std::println("{}", closeConnection(client));
+            while(true);
 
-            std::println("Closed connection...");
+            //std::println("{}", closeConnection(client));
+
+            //std::println("Closed connection...");
         }
 
-        virtual void onForbiddenClientConnection(nets::TcpRemote<MessageIds>& client) override
+        virtual void onForbiddenClientConnection(Remote& client) override
         {
             std::println("Client connected while server wasn't accepting requests...");
 
