@@ -6,6 +6,8 @@
 #include <functional>
 #include <list>
 
+#include <iostream>
+
 namespace nets
 {
     template <typename MessageIdEnum, typename Remote = nets::TcpRemote<MessageIdEnum>>
@@ -169,7 +171,7 @@ namespace nets
     void TcpServer<MessageIdEnum, Remote>::accept()
     {
         if(is_accepting)
-        {
+        {   
             clients.emplace_back(io_context, ping_timeout_time, ping_delay);
 
             acceptor.async_accept(

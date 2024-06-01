@@ -25,6 +25,8 @@ namespace nets
                 const PingTime ping_timeout_period,
                 const PingTime ping_delay
             );
+
+            ~TcpRemote();
             
             virtual void initialize() {}
 
@@ -33,7 +35,11 @@ namespace nets
 
             virtual void onFailedSending(const mdsm::Collection& message) {};
 
-            void setOnReceiving(const MessageIdEnum message_id, const MessageReceivedCallback& callback);
+            void setOnReceiving(
+                const MessageIdEnum message_id,
+                const MessageReceivedCallback& callback,
+                const bool enabled = true
+            );
 
             void setPingingTimeoutPeriod(const PingTime period);
 
@@ -69,17 +75,19 @@ namespace nets
 
             std::atomic_bool pinging_enabled             {false};
             std::atomic_bool listening_enabled           {true};
-            std::atomic_bool listening_for_pings_enabled {true};
 
             PingTime ping_timeout_period;
             PingTime ping_delay;
 
-            std::unordered_map<MessageIdEnum, MessageReceivedCallback> message_callbacks;
+            std::unordered_map<MessageIdEnum, std::pair<MessageReceivedCallback, bool>> message_callbacks;
 
             std::vector<std::byte> read_message_size;
             mdsm::Collection       read_message_data;
 
             std::atomic_bool ping_response_received;
+
+            std::atomic_bool active         {true};
+            std::atomic_bool socket_is_open {false};
     };
 }
 
@@ -101,7 +109,7 @@ namespace nets
     {
         read_message_size.resize(sizeof(mdsm::Collection::Size));
 
-        message_callbacks[MessageIdEnum::ping_response] = [&, this](
+        message_callbacks[MessageIdEnum::ping_response].first = [&, this](
                 const mdsm::Collection& collection,
                 TcpRemote<MessageIdEnum>& remote
             )
@@ -110,7 +118,7 @@ namespace nets
             }
         ;
 
-        message_callbacks[MessageIdEnum::ping_request] = [&, this](
+        message_callbacks[MessageIdEnum::ping_request].first = [&, this](
                 const mdsm::Collection& collection,
                 TcpRemote<MessageIdEnum>& remote
             )
@@ -119,23 +127,54 @@ namespace nets
             }
         ;  
 
-        startListeningForIncomingMessages();
         startListeningForPings();
 
-        initialize();      
+        initialize();
+
+        std::thread {
+            [&, this]
+            {   
+                while(active)
+                {
+                    if(socket_is_open.load() != socket.is_open())
+                    {
+                        socket_is_open = socket.is_open();
+
+                        if(socket_is_open)
+                        {
+                            if(pinging_enabled.load())
+                            {
+                                startPinging();
+                            }
+
+                            if(listening_enabled.load())
+                            {
+                                startListeningForIncomingMessages();
+                            }
+                        }                     
+                    }
+                }
+            }
+        }.detach();
     }
 
     template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::startListeningForPings()
+    TcpRemote<MessageIdEnum>::~TcpRemote()
     {
-        listening_for_pings_enabled = true;
+        active = false;
     }
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::stopListeningForPings()
     {
-        listening_for_pings_enabled = false;
+        message_callbacks[MessageIdEnum::ping_request].second = false;
     }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::startListeningForPings()
+    {
+        message_callbacks[MessageIdEnum::ping_request].second = true;    
+    }    
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::setPingingTimeoutPeriod(const PingTime t_ping_timeout_period)
@@ -245,7 +284,7 @@ namespace nets
             boost::asio::buffer(&read_message_size, sizeof(read_message_size)),
             [&, this](const boost::system::error_code error, const std::size_t bytes_count)
             {
-                if(listening_enabled.load())
+                if(listening_enabled.load() && socket_is_open.load())
                 {
                     const auto message_size {
                         mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
@@ -260,7 +299,7 @@ namespace nets
                         boost::asio::buffer(&read_message_data, message_size),
                         [&, this](const boost::system::error_code error, const std::size_t bytes_count)
                         {
-                            if(listening_enabled.load())
+                            if(listening_enabled.load() && socket_is_open.load())
                             {
                                 const auto message_id {
                                     read_message_data.retrieve<MessageIdEnum>()
@@ -268,9 +307,16 @@ namespace nets
 
                                 if(message_callbacks.contains(message_id))
                                 {
-                                    message_callbacks[message_id](
-                                        read_message_data, *this
-                                    );
+                                    if(message_callbacks[message_id].second)
+                                    {
+                                        message_callbacks[message_id].first(
+                                            read_message_data, *this
+                                        );
+                                    }
+                                    else
+                                    {
+                                        // Callback is disabled
+                                    }
                                 }
                                 else 
                                 {
@@ -308,7 +354,7 @@ namespace nets
         std::thread {
             [&, this]
             {
-                while(pinging_enabled.load())
+                while(pinging_enabled.load() && socket_is_open.load())
                 {
                     const auto pinging_result {ping()};
 
@@ -367,8 +413,13 @@ namespace nets
     }
 
     template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::setOnReceiving(const MessageIdEnum message_id, const MessageReceivedCallback& callback)
+    void TcpRemote<MessageIdEnum>::setOnReceiving(
+        const MessageIdEnum message_id,
+        const MessageReceivedCallback& callback,
+        const bool enabled
+    )
     {
-        message_callbacks[message_id] = callback;
+        message_callbacks[message_id].first = callback;
+        message_callbacks[message_id].second = enabled;
     }
 }

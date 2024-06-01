@@ -61,6 +61,12 @@ namespace nets
 
         server{io_context, ping_timer, ping_delay}
     {
+        std::thread {
+            [this]
+            {
+                io_context.run();
+            }
+        }.detach();        
     }
 
     template <typename MessageIdEnum, typename Remote>
