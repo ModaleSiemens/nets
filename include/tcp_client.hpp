@@ -14,11 +14,13 @@ namespace nets
             TcpClient(
                 const std::string_view address,
                 const std::string_view port,
-                const PingTime         ping_timeout_period = PingTime{2},
-                const PingTime         ping_delay          = PingTime{4}
+                const PingTime         ping_timeout_period = PingTime{4},
+                const PingTime         ping_delay          = PingTime{6}
             );
 
-            bool connect();
+            ~TcpClient();
+
+            void connect();
             bool disconnect();
 
             virtual void onConnection   (std::shared_ptr<Remote> server) = 0;
@@ -39,6 +41,8 @@ namespace nets
             std::shared_ptr<Remote> server;
 
             bool is_connected {false};
+
+            std::atomic_bool active {true};
     };
 }
 
@@ -64,21 +68,30 @@ namespace nets
         std::thread {
             [this]
             {
-                io_context.run();
+                while(active.load())
+                {
+                    io_context.run();
+                }
             }
         }.detach();        
     }
 
     template <typename MessageIdEnum, typename Remote>
-    bool TcpClient<MessageIdEnum, Remote>::connect()
+    TcpClient<MessageIdEnum, Remote>::~TcpClient()
+    {
+        active = false;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    void TcpClient<MessageIdEnum, Remote>::connect()
     {
         if(!is_connected)
         {
             is_connected = true;
 
-            boost::asio::ip::tcp::resolver resolver {io_context};
-
             boost::system::error_code error;
+
+            boost::asio::ip::tcp::resolver resolver {io_context};
 
             boost::asio::connect(
                 server->getSocket(),
@@ -89,19 +102,7 @@ namespace nets
             if(!error)
             {
                 onConnection(server);
-
-                return true;
             }
-            else
-            {
-                return false;
-            }
-
-            return true;
-        }
-        else 
-        {
-            return false;
         }
     }
 

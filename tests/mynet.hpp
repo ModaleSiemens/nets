@@ -30,7 +30,7 @@ class Remote : public nets::TcpRemote<MessageIds>
 
         void onPingingTimeout() override
         {
-            std::println("Server didn't respond in time...");
+            std::println("Remote didn't respond in time...");
         }
 
         void onPingFailedSending() override

@@ -6,8 +6,6 @@
 #include <functional>
 #include <list>
 
-#include <iostream>
-
 namespace nets
 {
     template <typename MessageIdEnum, typename Remote = nets::TcpRemote<MessageIdEnum>>
@@ -71,6 +69,8 @@ namespace nets
                 std::shared_ptr<Remote> client,
                 boost::system::error_code error
             );
+
+            std::atomic_bool active {true};
     };
 }
 
@@ -102,7 +102,10 @@ namespace nets
         std::thread {
             [this]
             {
-                io_context.run();
+                while(active.load())
+                {
+                    io_context.run();
+                }
             }
         }.detach();
     }
@@ -171,7 +174,7 @@ namespace nets
     void TcpServer<MessageIdEnum, Remote>::accept()
     {
         if(is_accepting)
-        {   
+        {
             clients.emplace_back(std::make_shared<Remote>(io_context, ping_timeout_time, ping_delay));
 
             acceptor.async_accept(
@@ -179,7 +182,7 @@ namespace nets
                 std::bind(
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
-                    std::ref(clients.back()),
+                    clients.back(),
                     std::placeholders::_1
                 )
             );
@@ -202,6 +205,10 @@ namespace nets
             {
                 onForbiddenClientConnection(client);
             }
+        }
+        else
+        {
+            // Error occourred
         }
 
         accept();
@@ -266,5 +273,7 @@ namespace nets
     {
         stopAccepting();
         closeAllConnections();
+
+        active = false;
     }
 }   

@@ -3,6 +3,7 @@
 #include "mynet.hpp"
 
 #include <print>
+#include <iostream>
 
 class Client : public nets::TcpClient<MessageIds, Remote>
 {
@@ -13,9 +14,9 @@ class Client : public nets::TcpClient<MessageIds, Remote>
         {
             std::println("Connected to server!");
 
-            while(server->connectionIsOpen())
+            while(server->isConnected())
             {
-
+                std::this_thread::sleep_for(PingTime{2.25});
             }
 
             std::println("Server closed connection...");
@@ -35,6 +36,10 @@ int main()
     };
 
     client.connect();
+
+    while(true)
+    {
+    }
 
     return 0;
 }

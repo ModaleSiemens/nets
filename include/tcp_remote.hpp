@@ -8,6 +8,8 @@
 #include <thread>
 #include <memory>
 
+#include <print>
+
 #include "types.hpp"
 #include "../subprojects/collection/include/collection.hpp"
 
@@ -31,6 +33,8 @@ namespace nets
             void enableBeingPinged      (const bool value = true);
             void enableReceivingMessages(const bool value = true);
 
+            bool isConnected();
+
             ~TcpRemote();
 
             void asyncSend(const mdsm::Collection& message);
@@ -53,8 +57,6 @@ namespace nets
 
             std::string getAddress() const;
             nets::Port  getPort()    const;
-
-            bool connectionIsOpen();
 
             nets::TcpSocket& getSocket();
 
@@ -90,7 +92,9 @@ namespace nets
             void stopListeningForIncomingMessages();           
 
             void startListeningForPings();
-            void stopListeningForPings();                    
+            void stopListeningForPings();           
+
+            bool connectionIsOpen();         
     };
 }
 
@@ -117,6 +121,8 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
+                std::println("DEBUG: Received ping response");
+
                 ping_response_received = true;               
             }
         ;
@@ -126,20 +132,21 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
+                std::println("DEBUG: Sending ping request");
                 asyncSend(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
         ;  
-
-        startListeningForPings();
 
         std::thread {
             [&, this]
             {   
                 while(active)
                 {
-                    if(socket_is_open.load() != socket.is_open())
+                    if(socket_is_open.load() != connectionIsOpen())
                     {
-                        socket_is_open = socket.is_open();
+                        socket_is_open = connectionIsOpen();
+
+                        std::println("DEBUG: Socket is open: {}", socket_is_open.load());
 
                         if(socket_is_open)
                         {
@@ -155,14 +162,16 @@ namespace nets
                         }                     
                     }
                 }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds{100});
             }
-        }.detach();
+        }.detach();        
     }
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::enablePinging(const bool value)
     {
-        pinging_enabled = value;
+        message_callbacks[MessageIdEnum::ping_response].second = value;
     }
 
     template <typename MessageIdEnum>
@@ -175,6 +184,12 @@ namespace nets
     void TcpRemote<MessageIdEnum>::enableReceivingMessages(const bool value)
     {
         receiving_messages_enabled = value;
+    }
+
+    template <typename MessageIdEnum>
+    bool TcpRemote<MessageIdEnum>::isConnected()
+    {
+        return socket_is_open.load();;
     }
 
     template <typename MessageIdEnum>
@@ -192,6 +207,11 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForPings()
     {
+        if(!socket_is_open.load())
+        {
+            return;
+        }
+
         message_callbacks[MessageIdEnum::ping_request].second = true;    
     }    
 
@@ -296,15 +316,18 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
     {
-        receiving_messages_enabled =  true;
+        if(!socket_is_open.load())
+            return;
 
         boost::asio::async_read(
             socket,
-            boost::asio::buffer(&read_message_size, sizeof(read_message_size)),
+            boost::asio::buffer(read_message_size.data(), read_message_size.size()),
             [&, this](const boost::system::error_code error, const std::size_t bytes_count)
             {
-                if(receiving_messages_enabled.load() && socket_is_open.load())
+                if(receiving_messages_enabled.load())
                 {
+                    std::println("DEBUG: Reading message size");
+
                     const auto message_size {
                         mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
                             read_message_size.data()
@@ -318,8 +341,10 @@ namespace nets
                         boost::asio::buffer(&read_message_data, message_size),
                         [&, this](const boost::system::error_code error, const std::size_t bytes_count)
                         {
-                            if(receiving_messages_enabled.load() && socket_is_open.load())
+                            if(receiving_messages_enabled.load())
                             {
+                                std::println("DEBUG: Reading message body");
+
                                 const auto message_id {
                                     read_message_data.retrieve<MessageIdEnum>()
                                 };
@@ -368,13 +393,16 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startPinging()
     {
-        pinging_enabled = true;
+        if(!socket_is_open.load())
+            return;
 
         std::thread {
             [&, this]
             {
                 while(pinging_enabled.load() && socket_is_open.load())
                 {
+                    std::println("DEBUG: Pinging");
+
                     const auto pinging_result {ping()};
 
                     if(!pinging_result.has_value())
@@ -407,7 +435,7 @@ namespace nets
 
             const auto ping_sent_time {std::chrono::system_clock::now()};
 
-            while(!ping_response_received)
+            while(!ping_response_received.load())
             {
                 if((ping_sent_time + ping_timeout_period) >= std::chrono::system_clock::now())
                 {
