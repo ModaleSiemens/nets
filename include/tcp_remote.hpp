@@ -56,11 +56,15 @@ namespace nets
             std::string address;
             nets::Port  port;
 
-            std::atomic_bool pinging_enabled;
+            std::atomic_bool pinging_enabled    {false};
+            std::atomic_bool listening_enabled  {true};
 
             PingTime ping_timeout_period;
 
             std::unordered_map<MessageIdEnum, MessageReceivedCallback> message_callbacks;
+
+            std::vector<std::bytes> read_message_size (sizeof(mdsm::Collection::getSize()));
+            mdsm::Collection        read_message_data;
     };
 }
 
@@ -147,6 +151,50 @@ namespace nets
                 }
             }
         );
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
+    {
+        boost::asio::async_read(
+            socket,
+            boost::asio::buffer(&read_message_size, sizeof(read_message_size)),
+            [&, this](const boost::system::error_code error, const std::size_t bytes_count)
+            {
+                if(listening_enabled.load())
+                {
+                    const auto message_size {
+                        mdsm::Collection::prepareDataForExtracting<decltype(mdsm::Collection::getSize())>(
+                            read_message_size.data()
+                        )
+                    };
+
+                    read_message_data.resize(message_size);
+
+                    boost::asio::async_read(
+                        socket,
+                        boost::asio::buffer(&read_message_data, message_size),
+                        [&, this](const boost::system::error_code error, const std::size_t bytes_count)
+                        {
+                            if(listening_enabled.load())
+                            {
+                                message_callbacks[read_message_data.retrieve<MessageIdEnum>()](
+                                    read_message_data, *this
+                                );
+                            }
+                            else
+                            {
+                                // Message shouldn't be processed
+                            }
+                        }
+                    )
+                }
+                else
+                {
+                    // Message shouldn't be read
+                }
+            }
+        )
     }
 
     template <typename MessageIdEnum>
