@@ -2,7 +2,12 @@ tests = [
     [
         'Test1',
         'test1.cpp',
-        'tcp_server.cpp'
+
+        'ServerTest',
+        'tcp_server.cpp',
+
+        'ClienTest',
+        'tcp_client.cpp'
     ]
 ]
 

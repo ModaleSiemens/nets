@@ -10,7 +10,7 @@ namespace nets
             //TcpRemote(nets::TcpSocket& socket);
             TcpRemote(boost::asio::io_context& io_context);
 
-            const std::string& getAddress() const;
+            std::string getAddress() const;
             nets::Port         getPort()    const;
 
             bool connectionIsOpen();

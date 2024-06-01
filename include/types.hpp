@@ -14,8 +14,8 @@ namespace nets
         ipv4, ipv6
     };
 
-    class Server;
-    class Client;
+    class TcpServer;
+    class TcpClient;
 
     class TcpRemote;
     class UdpRemote;

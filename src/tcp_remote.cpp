@@ -9,7 +9,7 @@ namespace nets
     {
     }
 
-    const std::string& TcpRemote::getAddress() const 
+    std::string TcpRemote::getAddress() const 
     {
         return socket.remote_endpoint().address().to_string();
     }
