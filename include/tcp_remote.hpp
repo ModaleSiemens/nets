@@ -6,6 +6,7 @@
 #include <functional>
 #include <unordered_map>
 #include <thread>
+#include <memory>
 
 #include "types.hpp"
 #include "../subprojects/collection/include/collection.hpp"
@@ -13,7 +14,7 @@
 namespace nets
 {
     template <typename MessageIdEnum>
-    class TcpRemote
+    class TcpRemote : public std::enable_shared_from_this<TcpRemote<MessageIdEnum>>
     {
         public:
             using PingTime = std::chrono::duration<double>;

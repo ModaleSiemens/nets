@@ -12,18 +12,18 @@ namespace nets
             using PingTime = Remote::PingTime;
 
             TcpClient(
-                const std::string_view          address,
-                const std::string_view          port,
-                const PingTime ping_timeout_period = PingTime{2},
-                const PingTime ping_delay          = PingTime{4}
+                const std::string_view address,
+                const std::string_view port,
+                const PingTime         ping_timeout_period = PingTime{2},
+                const PingTime         ping_delay          = PingTime{4}
             );
 
             bool connect();
             bool disconnect();
 
-            virtual void onConnection(Remote& server) = 0;
-            virtual void onDisconnection(Remote& server) = 0;
-            virtual void process(Remote& server);
+            virtual void onConnection   (std::shared_ptr<Remote> server) = 0;
+            virtual void onDisconnection(std::shared_ptr<Remote> server) = 0;
+            virtual void process        (std::shared_ptr<Remote> server);
 
             std::string_view getServerAddress();
             nets::Port       getServerPort   ();
@@ -36,7 +36,7 @@ namespace nets
             const std::string address;
             const std::string port;
 
-            Remote server;
+            std::shared_ptr<Remote> server;
 
             bool is_connected {false};
     };
@@ -59,7 +59,7 @@ namespace nets
         address{address},
         port{port},
 
-        server{io_context, ping_timer, ping_delay}
+        server{std::make_shared<Remote>(io_context, ping_timer, ping_delay)}
     {
         std::thread {
             [this]
@@ -81,7 +81,7 @@ namespace nets
             boost::system::error_code error;
 
             boost::asio::connect(
-                server.getSocket(),
+                server->getSocket(),
                 resolver.resolve(address, port),
                 error
             );
@@ -112,8 +112,8 @@ namespace nets
         {
             boost::system::error_code error;
 
-            server.getSocket().shutdown(TcpSocket::shutdown_both);
-            server.getSocket().close(error);
+            server->getSocket().shutdown(TcpSocket::shutdown_both);
+            server->getSocket().close(error);
 
             return !error;
         }
@@ -124,7 +124,7 @@ namespace nets
     }
 
     template <typename MessageIdEnum, typename Remote>
-    void TcpClient<MessageIdEnum, Remote>::process(Remote& server)
+    void TcpClient<MessageIdEnum, Remote>::process(std::shared_ptr<Remote> server)
     {
 
     }

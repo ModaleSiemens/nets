@@ -39,18 +39,18 @@ namespace nets
             bool startAccepting();
             bool stopAccepting ();
 
-            virtual void onClientConnection(Remote& client) = 0;
+            virtual void onClientConnection(std::shared_ptr<Remote> client) = 0;
             
             // Client connected when server wasn't accepting requests
-            virtual void onForbiddenClientConnection(Remote& client) = 0; 
+            virtual void onForbiddenClientConnection(std::shared_ptr<Remote> client) = 0; 
 
-            bool closeConnection(Remote& client);
+            bool closeConnection(std::shared_ptr<Remote> client);
             void closeAllConnections();
 
             size_t getClientsCount();
 
-            std::list<Remote>&       getClients();
-            const std::list<Remote>& getClients() const;
+            std::list<std::shared_ptr<Remote>>&       getClients();
+            const std::list<std::shared_ptr<Remote>>& getClients() const;
 
             ~TcpServer();
         
@@ -58,7 +58,7 @@ namespace nets
             boost::asio::io_context        io_context;
             boost::asio::ip::tcp::acceptor acceptor;
 
-            std::list<Remote> clients;
+            std::list<std::shared_ptr<Remote>> clients;
             
             bool is_accepting {false};
 
@@ -68,7 +68,7 @@ namespace nets
             void accept();
 
             void handleAccepting(
-                Remote& client,
+                std::shared_ptr<Remote> client,
                 boost::system::error_code error
             );
     };
@@ -172,10 +172,10 @@ namespace nets
     {
         if(is_accepting)
         {   
-            clients.emplace_back(io_context, ping_timeout_time, ping_delay);
+            clients.emplace_back(std::make_shared<Remote>(io_context, ping_timeout_time, ping_delay));
 
             acceptor.async_accept(
-                clients.back().getSocket(),
+                clients.back()->getSocket(),
                 std::bind(
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
@@ -188,7 +188,7 @@ namespace nets
 
     template <typename MessageIdEnum, typename Remote>
     void TcpServer<MessageIdEnum, Remote>::handleAccepting(
-        Remote& client,
+        std::shared_ptr<Remote> client,
         boost::system::error_code error
     )
     {
@@ -214,19 +214,19 @@ namespace nets
     }
 
     template <typename MessageIdEnum, typename Remote>
-    std::list<Remote>& TcpServer<MessageIdEnum, Remote>::getClients()
+    std::list<std::shared_ptr<Remote>>& TcpServer<MessageIdEnum, Remote>::getClients()
     {
         return clients;
     }
 
     template <typename MessageIdEnum, typename Remote>
-    const std::list<Remote>& TcpServer<MessageIdEnum, Remote>::getClients() const
+    const std::list<std::shared_ptr<Remote>>& TcpServer<MessageIdEnum, Remote>::getClients() const
     {
         return clients;
     }    
 
     template <typename MessageIdEnum, typename Remote>
-    bool TcpServer<MessageIdEnum, Remote>::closeConnection(Remote& client)
+    bool TcpServer<MessageIdEnum, Remote>::closeConnection(std::shared_ptr<Remote> client)
     {
         const auto client_iter {
             std::find(clients.begin(), clients.end(), client)
@@ -236,8 +236,8 @@ namespace nets
         {
             boost::system::error_code error;
 
-            client_iter->getSocket().shutdown(TcpSocket::shutdown_both);
-            client_iter->getSocket().close(error);
+            (*client_iter)->getSocket().shutdown(TcpSocket::shutdown_both);
+            (*client_iter)->getSocket().close(error);
 
             clients.erase(client_iter);
 
@@ -254,8 +254,8 @@ namespace nets
     {
         for(auto& client : clients)
         {
-            client.getSocket().shutdown(TcpSocket::shutdown_both);
-            client.getSocket().close();
+            client->getSocket().shutdown(TcpSocket::shutdown_both);
+            client->getSocket().close();
         }
 
         clients.clear();

@@ -14,7 +14,11 @@ class Remote : public nets::TcpRemote<MessageIds>
 
         void initialize() override
         {
+            std::println("Initializing.");
+
             enablePinging();
+            enableReceivingMessages();
+            enableBeingPinged();
         }
 
         void onFailedSending(const mdsm::Collection& message) override
