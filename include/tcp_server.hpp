@@ -76,8 +76,8 @@ namespace nets
             void accept();
 
             void handleAccepting(
-                std::shared_ptr<Remote> client,
-                boost::system::error_code error
+                boost::system::error_code error,
+                nets::TcpSocket           socket
             );
 
             std::atomic_bool active {true};
@@ -209,8 +209,8 @@ namespace nets
                 std::bind(
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
-                    clients.back(),
-                    std::placeholders::_1
+                    std::placeholders::_1,
+                    std::placeholders::_2
                 )
             );
         }
@@ -218,19 +218,21 @@ namespace nets
 
     template <typename MessageIdEnum, typename Remote>
     void TcpServer<MessageIdEnum, Remote>::handleAccepting(
-        std::shared_ptr<Remote> client,
-        boost::system::error_code error
+        boost::system::error_code error,
+        nets::TcpSocket socket
     )
     {
         if(!error)
         {
+            clients.back()->getSocket() = std::move(socket);
+
             if(is_accepting)
             {
-                onClientConnection(client);
+                onClientConnection(clients.back());
             }
             else
             {
-                onForbiddenClientConnection(client);
+                onForbiddenClientConnection(clients.back());
             }
         }
         else

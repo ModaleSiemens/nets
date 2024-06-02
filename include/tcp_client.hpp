@@ -112,6 +112,7 @@ namespace nets
             
             if(!error)
             {
+                server->start();
                 onConnection(server);
             }
         }
@@ -124,6 +125,7 @@ namespace nets
         {
             boost::system::error_code error;
 
+            server->stop();
             server->getSocket().shutdown(TcpSocket::shutdown_both);
             server->getSocket().close(error);
 

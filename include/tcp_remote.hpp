@@ -33,6 +33,9 @@ namespace nets
                 const bool               enable_receiving_messages = true
             );
 
+            void start();
+            void stop();
+
             void enablePinging          (const bool value = true);
             void enableBeingPinged      (const bool value = true);
             void enableReceivingMessages(const bool value = true);
@@ -86,25 +89,20 @@ namespace nets
 
             std::atomic_bool ping_response_received;
 
-            std::atomic_bool active         {true};
-            std::atomic_bool socket_is_open {false};
+            std::atomic_bool active       {true};
+            std::atomic_bool is_connected {false};
 
-            std::deque<mdsm::Collection> outgoing_messages_queue;
-
-            void startPinging();
-            void stopPinging();     
-
-            void startListeningForIncomingMessages();
-            void stopListeningForIncomingMessages();           
-
-            void startListeningForPings();
-            void stopListeningForPings();           
+            std::deque<mdsm::Collection> outgoing_messages_queue;        
 
             bool connectionIsOpen();    
 
             void asyncSend(const mdsm::Collection& message);
             void messagesSenderLoop();     
             void sendMessageToQueue(const mdsm::Collection& message);
+
+            void startPinging();     
+
+            void startMessagesListener();  
     };
 }
 
@@ -155,37 +153,29 @@ namespace nets
 
                 send(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
-        ;  
+        ;
+    }
 
-        std::thread {
-            [&, this]
-            {   
-                while(active)
-                {
-                    if(socket_is_open.load() != connectionIsOpen())
-                    {
-                        socket_is_open = connectionIsOpen();
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::start()
+    {
+        is_connected = true;
 
-                        std::println("DEBUG: Socket is open: {}", socket_is_open.load());
+        if(pinging_enabled)
+        {
+            startPinging();
+        }
 
-                        if(socket_is_open)
-                        {
-                            if(pinging_enabled.load())
-                            {
-                                startPinging();
-                            }
+        if(receiving_messages_enabled)
+        {
+            startMessagesListener();
+        }
+    }
 
-                            if(receiving_messages_enabled.load())
-                            {
-                                startListeningForIncomingMessages();
-                            }
-                        }                     
-                    }
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds{100});
-            }
-        }.detach();        
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::stop()
+    {
+        is_connected = false;
     }
 
     template <typename MessageIdEnum>
@@ -209,13 +199,14 @@ namespace nets
     template <typename MessageIdEnum>
     bool TcpRemote<MessageIdEnum>::isConnected()
     {
-        return socket_is_open.load();;
+        return is_connected.load();
     }
 
     template <typename MessageIdEnum>
     TcpRemote<MessageIdEnum>::~TcpRemote()
     {
         active = false;
+        is_connected = false;
     }
 
     template <typename MessageIdEnum>
@@ -230,23 +221,6 @@ namespace nets
             )
         );
     }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::stopListeningForPings()
-    {
-        message_callbacks[MessageIdEnum::ping_request].second = false;
-    }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::startListeningForPings()
-    {
-        if(!socket_is_open.load())
-        {
-            return;
-        }
-
-        message_callbacks[MessageIdEnum::ping_request].second = true;    
-    }    
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::setPingingTimeoutPeriod(const PingTime t_ping_timeout_period)
@@ -264,21 +238,6 @@ namespace nets
     nets::Port TcpRemote<MessageIdEnum>::getPort() const 
     {
         return socket.remote_endpoint().port();
-    }
-
-    template <typename MessageIdEnum>
-    bool TcpRemote<MessageIdEnum>::connectionIsOpen()
-    {
-        try
-        {
-            send(mdsm::Collection{} << MessageIdEnum::probe);
-
-            return true;
-        }
-        catch(boost::exception& e)
-        {
-            return false;
-        }
     }
 
     template <typename MessageIdEnum>
@@ -317,12 +276,16 @@ namespace nets
             {
                 if(!error)
                 {
+                    is_connected = false;
+
                     outgoing_messages_queue.pop_front();
                     
                     messagesSenderLoop();
                 }
                 else 
                 {
+                    is_connected = true;
+
                     onFailedSending(message);
                 }
             }
@@ -351,37 +314,13 @@ namespace nets
         };
     }
 
-    /*
     template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::syncSend(const mdsm::Collection& message)
+    void TcpRemote<MessageIdEnum>::startMessagesListener()
     {
-        const auto message_size {message.getSize()};
-
-        std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
-
-        // Transpose data to specific endianness
-        const auto prepared_message_size {message.prepareDataForInserting(message_size)};
-
-        std::memcpy(message_with_header.data(), prepared_message_size.data(), sizeof(message_size));
-        std::memcpy(
-            message_with_header.data() + sizeof(message_size),
-            message.getData(),
-            message_size
-        );
-
-        boost::asio::write(
-            socket,
-            boost::asio::buffer(message_with_header.data(), message_with_header.size())
-        );
-    }
-
-    */
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
-    {
-        if(!socket_is_open.load())
+        if(!is_connected || !receiving_messages_enabled)
+        {
             return;
+        }
 
         boost::asio::async_read(
             socket,
@@ -433,7 +372,7 @@ namespace nets
                                     // No callback found for received message id
                                 }
 
-                                startListeningForIncomingMessages();
+                                startMessagesListener();
                             }
                             else
                             {
@@ -451,21 +390,12 @@ namespace nets
     }
 
     template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::stopListeningForIncomingMessages()
-    {
-        receiving_messages_enabled = false;
-    }
-
-    template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startPinging()
     {
-        if(!socket_is_open.load())
-            return;
-
         std::thread {
             [&, this]
             {
-                while(pinging_enabled.load() && socket_is_open.load())
+                while(is_connected && pinging_enabled)
                 {
                     std::println("DEBUG: Pinging");
 
@@ -479,8 +409,16 @@ namespace nets
                         }
                         else 
                         {
+                            is_connected = true;
+
                             onPingFailedSending();
                         }
+                    }
+                    else 
+                    {
+                        // Ping sent successfully
+                        
+                        is_connected = false;
                     }
 
                     std::this_thread::sleep_for(
@@ -517,12 +455,6 @@ namespace nets
         {
             return std::unexpected(PingError::failed_to_send);
         }
-    }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::stopPinging()
-    {
-        pinging_enabled = false;
     }
 
     template <typename MessageIdEnum>
