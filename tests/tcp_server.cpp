@@ -41,10 +41,7 @@ int main()
         60'000,
         nets::IPVersion::ipv4,
         Remote::PingTime{4},
-        Remote::PingTime{6},
-        true,
-        false,
-        true        
+        Remote::PingTime{6} 
     };
 
     server.startAccepting();

@@ -15,10 +15,7 @@ namespace nets
                 const std::string_view address,
                 const std::string_view port,
                 const PingTime         ping_timeout_period       = PingTime{4},
-                const PingTime         ping_delay                = PingTime{6},
-                const bool             enable_pinging            = true,
-                const bool             enable_being_pinged       = true,
-                const bool             enable_receiving_messages = true
+                const PingTime         ping_delay                = PingTime{6}
             );
 
             ~TcpClient();
@@ -60,10 +57,7 @@ namespace nets
         const std::string_view  address,
         const std::string_view  port,
         const PingTime ping_timer,
-        const PingTime ping_delay,
-        const bool enable_pinging,
-        const bool enable_being_pinged,
-        const bool enable_receiving_messages      
+        const PingTime ping_delay 
     )
     :
         io_context{},
@@ -73,8 +67,7 @@ namespace nets
 
         server{
             std::make_shared<Remote>(
-                io_context, ping_timer, ping_delay, enable_pinging,
-                enable_being_pinged, enable_receiving_messages
+                io_context, ping_timer, ping_delay
             )
         },
 

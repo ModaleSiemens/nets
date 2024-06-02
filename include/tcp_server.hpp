@@ -18,10 +18,7 @@ namespace nets
                 const nets::Port                port,
                 const nets::IPVersion           ip_version,
                 const PingTime ping_timeout_period = PingTime{2},
-                const PingTime ping_delay          = PingTime{4},
-                const bool     enable_pinging            = true,
-                const bool     enable_being_pinged       = true,
-                const bool     enable_receiving_messages = true                
+                const PingTime ping_delay          = PingTime{4}           
             );
 
             // Bind acceptor to specific address
@@ -30,10 +27,7 @@ namespace nets
                 const nets::IPVersion           ip_version,
                 const std::string_view          address,
                 const PingTime ping_timeout_period = PingTime{2},
-                const PingTime ping_delay          = PingTime{4},
-                const bool     enable_pinging            = true,
-                const bool     enable_being_pinged       = true,
-                const bool     enable_receiving_messages = true                 
+                const PingTime ping_delay          = PingTime{4}              
             );            
 
             TcpServer(const TcpServer&) = delete;
@@ -69,10 +63,6 @@ namespace nets
             PingTime ping_timeout_time;
             PingTime ping_delay;
 
-            bool enable_pinging;
-            bool enable_being_pinged;
-            bool enable_receiving_messages;
-
             void accept();
 
             void handleAccepting(
@@ -96,10 +86,7 @@ namespace nets
         const nets::Port       port,
         const nets::IPVersion  ip_version,
         const PingTime ping_timeout_time,
-        const PingTime ping_delay,
-        const bool enable_pinging,
-        const bool enable_being_pinged,
-        const bool enable_receiving_messages           
+        const PingTime ping_delay
     )
     :
         io_context{},
@@ -114,9 +101,6 @@ namespace nets
         },
         ping_timeout_time{ping_timeout_time},
         ping_delay{ping_delay},
-        enable_pinging{enable_pinging},
-        enable_being_pinged{enable_being_pinged},
-        enable_receiving_messages{enable_receiving_messages},
         io_context_work{io_context.get_executor()}
     {
         std::thread {    
@@ -133,10 +117,7 @@ namespace nets
         const nets::IPVersion  ip_version,
         const std::string_view address,
         const PingTime ping_timeout_time,
-        const PingTime ping_delay,
-        const bool enable_pinging,
-        const bool enable_being_pinged,
-        const bool enable_receiving_messages           
+        const PingTime ping_delay         
     )
     :
         io_context{},
@@ -149,10 +130,7 @@ namespace nets
             }
         },
         ping_timeout_time{ping_timeout_time},
-        ping_delay{ping_delay},
-        enable_pinging{enable_pinging},
-        enable_being_pinged{enable_being_pinged},
-        enable_receiving_messages{enable_receiving_messages}        
+        ping_delay{ping_delay}     
     {
 
         std::thread {    
@@ -209,8 +187,7 @@ namespace nets
 
             clients.emplace_back(
                 std::make_shared<Remote>(
-                    io_context, ping_timeout_time, ping_delay,
-                    enable_pinging, enable_being_pinged, enable_receiving_messages
+                    io_context, ping_timeout_time, ping_delay
                 )
             ); 
 

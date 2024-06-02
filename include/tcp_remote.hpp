@@ -27,18 +27,11 @@ namespace nets
             TcpRemote(
                 boost::asio::io_context& io_context,
                 const PingTime           ping_timeout_period,
-                const PingTime           ping_delay,
-                const bool               enable_pinging = true,
-                const bool               enable_being_pinged = true,
-                const bool               enable_receiving_messages = true
+                const PingTime           ping_delay
             );
 
             void start();
             void stop();
-
-            void enablePinging          (const bool value = true);
-            void enableBeingPinged      (const bool value = true);
-            void enableReceivingMessages(const bool value = true);
 
             bool isConnected();
 
@@ -76,9 +69,6 @@ namespace nets
             std::string address;
             nets::Port  port;
 
-            std::atomic_bool pinging_enabled;
-            std::atomic_bool receiving_messages_enabled;
-
             PingTime ping_timeout_period;
             PingTime ping_delay;
 
@@ -114,10 +104,7 @@ namespace nets
     TcpRemote<MessageIdEnum>::TcpRemote(
         boost::asio::io_context& io_context,
         const PingTime ping_timeout_period,
-        const PingTime ping_delay,
-        const bool enable_pinging,
-        const bool enable_being_pinged,
-        const bool enable_receiving_messages
+        const PingTime ping_delay
     )
     :
         io_context               {io_context},
@@ -125,11 +112,8 @@ namespace nets
         ping_timeout_period      {ping_timeout_period},
         ping_delay               {ping_delay}
     {
-        pinging_enabled = enable_pinging;
-        message_callbacks[MessageIdEnum::ping_request].second  = enable_being_pinged;
-        message_callbacks[MessageIdEnum::ping_response].second = enable_pinging;
-        receiving_messages_enabled = enable_receiving_messages;
-
+        message_callbacks[MessageIdEnum::ping_request].second  = true;
+        message_callbacks[MessageIdEnum::ping_response].second = true;
 
         read_message_size.resize(sizeof(mdsm::Collection::Size));
 
@@ -140,7 +124,8 @@ namespace nets
             {
                 std::println("DEBUG: Received ping response");
 
-                ping_response_received = true;               
+                ping_response_received = true;            
+                //is_connected           = true;   
             }
         ;
 
@@ -161,39 +146,15 @@ namespace nets
     {
         is_connected = true;
 
-        if(pinging_enabled)
-        {
-            startPinging();
-        }
+        startPinging();
 
-        if(receiving_messages_enabled)
-        {
-            startMessagesListener();
-        }
+        startMessagesListener();
     }
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::stop()
     {
         is_connected = false;
-    }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::enablePinging(const bool value)
-    {
-        message_callbacks[MessageIdEnum::ping_response].second = value;
-    }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::enableBeingPinged(const bool value)
-    {
-        message_callbacks[MessageIdEnum::ping_request].second = value;
-    }
-
-    template <typename MessageIdEnum>
-    void TcpRemote<MessageIdEnum>::enableReceivingMessages(const bool value)
-    {
-        receiving_messages_enabled = value;
     }
 
     template <typename MessageIdEnum>
@@ -327,7 +288,7 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startMessagesListener()
     {
-        if(!is_connected.load() || !receiving_messages_enabled.load())
+        if(!is_connected.load())
         {
             std::println("DEBUG: Not continuing startMessageListener()");
             return;
@@ -340,64 +301,51 @@ namespace nets
             {
                 std::println("DEBUG: Inside first async read callback");
 
-                if(receiving_messages_enabled.load())
-                {
-                    std::println("DEBUG: Reading message size");
+                std::println("DEBUG: Reading message size");
 
-                    const auto message_size {
-                        mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
-                            read_message_size.data()
-                        )
-                    };
+                const auto message_size {
+                    mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
+                        read_message_size.data()
+                    )
+                };
 
-                    read_message_data.resize(message_size);
+                read_message_data.resize(message_size);
 
-                    boost::asio::async_read(
-                        socket,
-                        boost::asio::buffer(read_message_data.getData(), message_size),
-                        [&, this](const boost::system::error_code error, const std::size_t bytes_count)
+                boost::asio::async_read(
+                    socket,
+                    boost::asio::buffer(read_message_data.getData(), message_size),
+                    [&, this](const boost::system::error_code error, const std::size_t bytes_count)
+                    {
+                        std::println("DEBUG: Reading message body");
+
+                        const auto message_id {
+                            read_message_data.retrieve<MessageIdEnum>()
+                        };
+
+                        if(message_callbacks.contains(message_id))
                         {
-                            if(receiving_messages_enabled.load())
+                            if(message_callbacks[message_id].second)
                             {
-                                std::println("DEBUG: Reading message body");
+                                std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
 
-                                const auto message_id {
-                                    read_message_data.retrieve<MessageIdEnum>()
-                                };
-
-                                if(message_callbacks.contains(message_id))
-                                {
-                                    if(message_callbacks[message_id].second)
-                                    {
-                                        std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
-
-                                        message_callbacks[message_id].first(
-                                            read_message_data, std::ref(*this)
-                                        );
-                                    }
-                                    else
-                                    {
-                                        // Callback is disabled
-                                    }
-                                }
-                                else 
-                                {
-                                    // No callback found for received message id
-                                }
-
-                                startMessagesListener();
+                                message_callbacks[message_id].first(
+                                    read_message_data, std::ref(*this)
+                                );
                             }
                             else
                             {
-                                // Message shouldn't be processed
+                                // Callback is disabled
                             }
                         }
-                    );
-                }
-                else
-                {
-                    // Message shouldn't be read
-                }
+                        else 
+                        {
+                            // No callback found for received message id
+                        }
+
+                        startMessagesListener();
+                    }
+
+                );
             }
         );
     }
@@ -408,7 +356,7 @@ namespace nets
         std::thread {
             [&, this]
             {
-                while(is_connected && pinging_enabled)
+                while(is_connected)
                 {
                     std::println("DEBUG: Pinging");
 

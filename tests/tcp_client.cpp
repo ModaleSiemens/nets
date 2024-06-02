@@ -36,10 +36,7 @@ int main()
         "localhost",
         "60000",
         Remote::PingTime{4},
-        Remote::PingTime{6},
-        false,
-        true,
-        true
+        Remote::PingTime{6}
     };
 
     client.connect();
