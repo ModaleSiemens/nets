@@ -154,6 +154,13 @@ namespace nets
         enable_being_pinged{enable_being_pinged},
         enable_receiving_messages{enable_receiving_messages}        
     {
+
+        std::thread {    
+            [&, this]
+            {
+                io_context.run();
+            }
+        }.detach();        
     }    
 
     template <typename MessageIdEnum, typename Remote>
@@ -236,12 +243,23 @@ namespace nets
                 std::println("DEBUG: Accepted connection");
                 accept();
 
-                client->start();
-                onClientConnection(client);
+                client->start();          
+                
+                std::thread {
+                    [&, this]
+                    {
+                        onClientConnection(client);
+                    }
+                }.detach();
             }
             else
             {
-                onForbiddenClientConnection(client);
+                std::thread {
+                    [&, this]
+                    {
+                        onForbiddenClientConnection(client);
+                    }
+                }.detach();
             }
         }
         else

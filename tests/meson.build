@@ -10,6 +10,14 @@ tests = [
     [
         'ClientTest',
         'tcp_client.cpp'
+    ],
+    [
+        'StackoverflowClient',
+        'stackoverflow_client.cpp',
+    ],
+    [
+        'StackoverflowServer',
+        'stackoverflow_server.cpp'        
     ]
 ]
 

@@ -212,6 +212,8 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::send(const mdsm::Collection &message)
     {
+        std::println("DEBUG: send() start");
+
         boost::asio::post(
             socket.get_executor(),
             std::bind(
@@ -220,6 +222,8 @@ namespace nets
                 message
             )
         );
+        
+        std::println("DEBUG: send() end");
     }
 
     template <typename MessageIdEnum>
@@ -334,6 +338,8 @@ namespace nets
             boost::asio::buffer(read_message_size.data(), read_message_size.size()),
             [&, this](const boost::system::error_code error, const std::size_t bytes_count)
             {
+                std::println("DEBUG: Inside first async read callback");
+
                 if(receiving_messages_enabled.load())
                 {
                     std::println("DEBUG: Reading message size");
