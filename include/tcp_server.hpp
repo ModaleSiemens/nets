@@ -202,10 +202,10 @@ namespace nets
                     io_context, ping_timeout_time, ping_delay,
                     enable_pinging, enable_being_pinged, enable_receiving_messages
                 )
-            );
+            ); 
 
             acceptor.async_accept(
-                clients.back()->getSocket(),
+                boost::asio::make_strand(acceptor.get_executor()),
                 std::bind(
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,

@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <thread>
 #include <memory>
-#include <mutex>
+#include <deque>
 
 #include <print>
 
@@ -41,8 +41,8 @@ namespace nets
 
             ~TcpRemote();
 
-            void asyncSend(const mdsm::Collection& message);
-            void syncSend(const mdsm::Collection& message);
+            void send(const mdsm::Collection& message);
+            //void syncSend(const mdsm::Collection& message);
 
             virtual void onFailedSending(const mdsm::Collection& message) {};
 
@@ -89,7 +89,7 @@ namespace nets
             std::atomic_bool active         {true};
             std::atomic_bool socket_is_open {false};
 
-            std::mutex mutex;
+            std::deque<mdsm::Collection> outgoing_messages_queue;
 
             void startPinging();
             void stopPinging();     
@@ -100,7 +100,11 @@ namespace nets
             void startListeningForPings();
             void stopListeningForPings();           
 
-            bool connectionIsOpen();         
+            bool connectionIsOpen();    
+
+            void asyncSend(const mdsm::Collection& message);
+            void messagesSenderLoop();     
+            void sendMessageToQueue(const mdsm::Collection& message);
     };
 }
 
@@ -149,7 +153,7 @@ namespace nets
             {
                 std::println("DEBUG: Receiving ping request");
 
-                asyncSend(mdsm::Collection{} << MessageIdEnum::ping_response);               
+                send(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
         ;  
 
@@ -215,6 +219,19 @@ namespace nets
     }
 
     template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::send(const mdsm::Collection &message)
+    {
+        boost::asio::post(
+            socket.get_executor(),
+            std::bind(
+                &TcpRemote<MessageIdEnum>::sendMessageToQueue,
+                this,
+                message
+            )
+        );
+    }
+
+    template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::stopListeningForPings()
     {
         message_callbacks[MessageIdEnum::ping_request].second = false;
@@ -254,7 +271,7 @@ namespace nets
     {
         try
         {
-            syncSend(mdsm::Collection{} << MessageIdEnum::probe);
+            send(mdsm::Collection{} << MessageIdEnum::probe);
 
             return true;
         }
@@ -298,7 +315,13 @@ namespace nets
             boost::asio::buffer(message_with_header.data(), message_with_header.size()),
             [&, this](const boost::system::error_code& error, const std::size_t bytes_count)
             {
-                if(error)
+                if(!error)
+                {
+                    outgoing_messages_queue.pop_front();
+                    
+                    messagesSenderLoop();
+                }
+                else 
                 {
                     onFailedSending(message);
                 }
@@ -306,6 +329,29 @@ namespace nets
         );
     }
 
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::messagesSenderLoop()
+    {
+        if(outgoing_messages_queue.empty())
+        {
+            return;
+        }
+
+        asyncSend(outgoing_messages_queue.front());
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::sendMessageToQueue(const mdsm::Collection &message)
+    {
+        outgoing_messages_queue.push_back(message);
+
+        if(outgoing_messages_queue.size() == 1)
+        {
+            messagesSenderLoop();
+        };
+    }
+
+    /*
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::syncSend(const mdsm::Collection& message)
     {
@@ -328,6 +374,8 @@ namespace nets
             boost::asio::buffer(message_with_header.data(), message_with_header.size())
         );
     }
+
+    */
 
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startListeningForIncomingMessages()
@@ -449,7 +497,7 @@ namespace nets
     {
         try
         {
-            asyncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
+            send(mdsm::Collection{} << MessageIdEnum::ping_request);
 
             const auto ping_sent_time {std::chrono::system_clock::now()};
 
