@@ -46,6 +46,8 @@ namespace nets
             bool is_connected {false};
 
             std::atomic_bool active {true};
+
+            boost::asio::executor_work_guard<decltype(io_context.get_executor())> io_context_work;
     };
 }
 
@@ -74,17 +76,16 @@ namespace nets
                 io_context, ping_timer, ping_delay, enable_pinging,
                 enable_being_pinged, enable_receiving_messages
             )
-        }
+        },
+
+        io_context_work{io_context.get_executor()}
     {
-        std::thread {
-            [this]
+        std::thread {    
+            [&, this]
             {
-                while(active.load())
-                {
-                    io_context.run();
-                }
+                io_context.run();
             }
-        }.detach();        
+        }.detach();
     }
 
     template <typename MessageIdEnum, typename Remote>

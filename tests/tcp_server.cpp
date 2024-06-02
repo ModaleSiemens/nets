@@ -13,7 +13,12 @@ class Server : public nets::TcpServer<MessageIds, Remote>
         {
             std::println("Client connected!");
 
-            while(true);
+            std::println("{}", client->getPort());
+
+            while(true)
+            {
+                //std::println("{}", client->isConnected());
+            }
 
             //std::println("{}", closeConnection(client));
 
@@ -34,7 +39,12 @@ int main()
 {
     Server server {
         60'000,
-        nets::IPVersion::ipv4
+        nets::IPVersion::ipv4,
+        Remote::PingTime{4},
+        Remote::PingTime{6},
+        true,
+        false,
+        true        
     };
 
     server.startAccepting();

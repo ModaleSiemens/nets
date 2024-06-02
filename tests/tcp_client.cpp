@@ -14,6 +14,8 @@ class Client : public nets::TcpClient<MessageIds, Remote>
         {
             std::println("Connected to server!");
 
+            std::println("{}", server->getPort());
+
             while(server->isConnected())
             {
                 std::this_thread::sleep_for(PingTime{2.25});
@@ -32,7 +34,12 @@ int main()
 {
     Client client {
         "localhost",
-        "60000"
+        "60000",
+        Remote::PingTime{4},
+        Remote::PingTime{6},
+        false,
+        true,
+        true
     };
 
     client.connect();

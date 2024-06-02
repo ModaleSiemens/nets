@@ -62,7 +62,7 @@ namespace nets
             boost::asio::io_context        io_context;
             boost::asio::ip::tcp::acceptor acceptor;
 
-            std::list<std::shared_ptr<Remote>> clients;
+            std::vector<std::shared_ptr<Remote>> clients;
             
             bool is_accepting {false};
 
@@ -76,11 +76,14 @@ namespace nets
             void accept();
 
             void handleAccepting(
+                std::shared_ptr<Remote>   client,
                 boost::system::error_code error,
                 nets::TcpSocket           socket
             );
 
             std::atomic_bool active {true};
+
+            boost::asio::executor_work_guard<decltype(io_context.get_executor())> io_context_work;
     };
 }
 
@@ -113,15 +116,13 @@ namespace nets
         ping_delay{ping_delay},
         enable_pinging{enable_pinging},
         enable_being_pinged{enable_being_pinged},
-        enable_receiving_messages{enable_receiving_messages}
+        enable_receiving_messages{enable_receiving_messages},
+        io_context_work{io_context.get_executor()}
     {
-        std::thread {
-            [this]
+        std::thread {    
+            [&, this]
             {
-                while(active.load())
-                {
-                    io_context.run();
-                }
+                io_context.run();
             }
         }.detach();
     }
@@ -197,6 +198,8 @@ namespace nets
     {
         if(is_accepting)
         {
+            std::println("DEBUG: Accepting");
+
             clients.emplace_back(
                 std::make_shared<Remote>(
                     io_context, ping_timeout_time, ping_delay,
@@ -209,6 +212,7 @@ namespace nets
                 std::bind(
                     &TcpServer<MessageIdEnum, Remote>::handleAccepting,
                     this,
+                    clients.back(),
                     std::placeholders::_1,
                     std::placeholders::_2
                 )
@@ -218,29 +222,32 @@ namespace nets
 
     template <typename MessageIdEnum, typename Remote>
     void TcpServer<MessageIdEnum, Remote>::handleAccepting(
+        std::shared_ptr<Remote> client,
         boost::system::error_code error,
         nets::TcpSocket socket
     )
     {
         if(!error)
         {
-            clients.back()->getSocket() = std::move(socket);
+            client->getSocket() = std::move(socket);
 
             if(is_accepting)
             {
-                onClientConnection(clients.back());
+                std::println("DEBUG: Accepted connection");
+                accept();
+
+                client->start();
+                onClientConnection(client);
             }
             else
             {
-                onForbiddenClientConnection(clients.back());
+                onForbiddenClientConnection(client);
             }
         }
         else
         {
             // Error occourred
         }
-
-        accept();
     }
 
     template <typename MessageIdEnum, typename Remote>
@@ -276,6 +283,8 @@ namespace nets
             (*client_iter)->getSocket().close(error);
 
             clients.erase(client_iter);
+
+            std::println("DEBUG: Closing connection");
 
             return !error;
         } 

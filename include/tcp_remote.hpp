@@ -259,6 +259,8 @@ namespace nets
 
         const auto message_size {message.getSize()};
 
+        std::println("DEBUG: Header size: {}, Body size: {}", sizeof(message_size), message_size);
+
         std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
 
         // Transpose data to specific endianness
@@ -308,6 +310,8 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::sendMessageToQueue(const mdsm::Collection &message)
     {
+        std::println("DEBUG: Sending message to queue");
+
         outgoing_messages_queue.push_back(message);
 
         if(outgoing_messages_queue.size() == 1)
@@ -319,8 +323,9 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::startMessagesListener()
     {
-        if(!is_connected || !receiving_messages_enabled)
+        if(!is_connected.load() || !receiving_messages_enabled.load())
         {
+            std::println("DEBUG: Not continuing startMessageListener()");
             return;
         }
 
@@ -407,10 +412,16 @@ namespace nets
                     {
                         if(pinging_result.error() == PingError::expired)
                         {
+                            std::println("DEBUG: Pinging timeout");
+
+                            is_connected = false;
+
                             onPingingTimeout();
                         }
                         else 
                         {
+                            std::println("DEBUG: Failed sending ping");
+
                             is_connected = false;
 
                             onPingFailedSending();
@@ -418,8 +429,10 @@ namespace nets
                     }
                     else 
                     {
-                        // Ping sent successfully
+                        // Ping response received successfully
                         
+                        std::println("DEBUG: Pinging succeeded");
+
                         is_connected = true;
                     }
 
