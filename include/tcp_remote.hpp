@@ -87,7 +87,7 @@ namespace nets
             std::vector<std::byte> read_message_size;
             mdsm::Collection       read_message_data;
 
-            std::atomic_bool ping_response_received;
+            std::atomic_bool ping_response_received {false};
 
             std::atomic_bool active       {true};
             std::atomic_bool is_connected {false};
@@ -255,6 +255,8 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::asyncSend(const mdsm::Collection& message)
     {
+        std::println("DEBUG: Sending message");
+
         const auto message_size {message.getSize()};
 
         std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
@@ -329,7 +331,7 @@ namespace nets
             {
                 if(receiving_messages_enabled.load())
                 {
-                    //std::println("DEBUG: Reading message size");
+                    std::println("DEBUG: Reading message size");
 
                     const auto message_size {
                         mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
@@ -346,7 +348,7 @@ namespace nets
                         {
                             if(receiving_messages_enabled.load())
                             {
-                                //std::println("DEBUG: Reading message body");
+                                std::println("DEBUG: Reading message body");
 
                                 const auto message_id {
                                     read_message_data.retrieve<MessageIdEnum>()
@@ -409,7 +411,7 @@ namespace nets
                         }
                         else 
                         {
-                            is_connected = true;
+                            is_connected = false;
 
                             onPingFailedSending();
                         }
@@ -418,7 +420,7 @@ namespace nets
                     {
                         // Ping sent successfully
                         
-                        is_connected = false;
+                        is_connected = true;
                     }
 
                     std::this_thread::sleep_for(
@@ -441,7 +443,7 @@ namespace nets
 
             while(!ping_response_received.load())
             {
-                if((ping_sent_time + ping_timeout_period) >= std::chrono::system_clock::now())
+                if((ping_sent_time + ping_timeout_period) <= std::chrono::system_clock::now())
                 {
                     return std::unexpected(PingError::expired);
                 }
