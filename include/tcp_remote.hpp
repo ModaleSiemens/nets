@@ -449,7 +449,7 @@ namespace nets
     {
         try
         {
-            syncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
+            asyncSend(mdsm::Collection{} << MessageIdEnum::ping_request);
 
             const auto ping_sent_time {std::chrono::system_clock::now()};
 
