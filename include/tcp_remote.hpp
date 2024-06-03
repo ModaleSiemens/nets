@@ -41,6 +41,7 @@ namespace nets
             //void syncSend(const mdsm::Collection& message);
 
             virtual void onFailedSending(const mdsm::Collection& message) {};
+            virtual void onFailedReading(const boost::system::error_code& error) {};
 
             void setOnReceiving(
                 const MessageIdEnum message_id,
@@ -245,17 +246,15 @@ namespace nets
             {
                 if(!error)
                 {
-                    is_connected = false;
-
                     outgoing_messages_queue.pop_front();
                     
                     messagesSenderLoop();
                 }
                 else 
                 {
-                    is_connected = true;
-
-                    onFailedSending(message);
+                    std::thread {
+                        onFailedSending, this, message
+                    }.detach();
                 }
             }
         );
@@ -299,6 +298,17 @@ namespace nets
             boost::asio::buffer(read_message_size.data(), read_message_size.size()),
             [&, this](const boost::system::error_code error, const std::size_t bytes_count)
             {
+                if(error)
+                {
+                    is_connected = false;
+
+                    std::thread {
+                        onFailedReading, this, error
+                    }.detach();
+
+                    return;
+                }
+
                 std::println("DEBUG: Inside first async read callback");
 
                 std::println("DEBUG: Reading message size");
@@ -316,6 +326,17 @@ namespace nets
                     boost::asio::buffer(read_message_data.getData(), message_size),
                     [&, this](const boost::system::error_code error, const std::size_t bytes_count)
                     {
+                        if(error)
+                        {
+                            is_connected = false;
+
+                            std::thread {
+                                onFailedReading, this, error
+                            }.detach();
+
+                            return;
+                        }
+
                         std::println("DEBUG: Reading message body");
 
                         const auto message_id {
@@ -328,9 +349,11 @@ namespace nets
                             {
                                 std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
 
-                                message_callbacks[message_id].first(
-                                    read_message_data, std::ref(*this)
-                                );
+                                std::thread {
+                                    message_callbacks[message_id].first,
+                                    read_message_data,
+                                    std::ref(*this)
+                                }.detach();
                             }
                             else
                             {
@@ -364,6 +387,8 @@ namespace nets
 
                     if(!pinging_result.has_value())
                     {
+                        std::println("DEBUG: pinging_result doesn't have value");
+
                         if(pinging_result.error() == PingError::expired)
                         {
                             std::println("DEBUG: Pinging timeout");
@@ -412,16 +437,22 @@ namespace nets
             {
                 if((ping_sent_time + ping_timeout_period) <= std::chrono::system_clock::now())
                 {
+                    std::println("DEBUG: Inside Ping Expired if");
+
+                    ping_response_received = false;
+
                     return std::unexpected(PingError::expired);
                 }
             }
 
-            ping_response_received = false;
+            std::println("DEBUG: Exited ping while loop");
 
             return std::chrono::system_clock::now() - ping_sent_time;
         }
         catch(const boost::exception& e)
         {
+            ping_response_received = false;
+
             return std::unexpected(PingError::failed_to_send);
         }
     }
