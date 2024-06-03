@@ -183,7 +183,7 @@ namespace nets
     {
         if(is_accepting)
         {
-            std::println("DEBUG: Accepting");
+            //std::println("DEBUG: Accepting");
 
             clients.push_back(
                 std::make_shared<Remote>(
@@ -217,7 +217,7 @@ namespace nets
 
             if(is_accepting)
             {
-                std::println("DEBUG: Accepted connection");
+                //std::println("DEBUG: Accepted connection");
                 accept();
 
                 client->start();          
@@ -273,7 +273,7 @@ namespace nets
 
             clients.erase(client_iter);
 
-            std::println("DEBUG: Closing connection");
+            //std::println("DEBUG: Closing connection");
 
             return !error;
         } 

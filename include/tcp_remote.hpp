@@ -123,7 +123,7 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
-                std::println("DEBUG: Received ping response");
+                //std::println("DEBUG: Received ping response");
 
                 ping_response_received = true;            
                 //is_connected           = true;   
@@ -135,7 +135,7 @@ namespace nets
                 TcpRemote<MessageIdEnum>& remote
             )
             {
-                std::println("DEBUG: Receiving ping request");
+                //std::println("DEBUG: Receiving ping request");
 
                 send(mdsm::Collection{} << MessageIdEnum::ping_response);               
             }
@@ -174,7 +174,7 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::send(const mdsm::Collection &message)
     {
-        std::println("DEBUG: send() start");
+        //std::println("DEBUG: send() start");
 
         boost::asio::post(
             socket.get_executor(),
@@ -185,7 +185,7 @@ namespace nets
             )
         );
         
-        std::println("DEBUG: send() end");
+        //std::println("DEBUG: send() end");
     }
 
     template <typename MessageIdEnum>
@@ -221,11 +221,11 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::asyncSend(const mdsm::Collection& message)
     {
-        std::println("DEBUG: Sending message");
+        //std::println("DEBUG: Sending message");
 
         const auto message_size {message.getSize()};
 
-        std::println("DEBUG: Header size: {}, Body size: {}", sizeof(message_size), message_size);
+        //std::println("DEBUG: Header size: {}, Body size: {}", sizeof(message_size), message_size);
 
         std::vector<std::byte> message_with_header (sizeof(message_size) + message_size);
 
@@ -274,7 +274,7 @@ namespace nets
     template <typename MessageIdEnum>
     void TcpRemote<MessageIdEnum>::sendMessageToQueue(const mdsm::Collection &message)
     {
-        std::println("DEBUG: Sending message to queue");
+        //std::println("DEBUG: Sending message to queue");
 
         outgoing_messages_queue.push_back(message);
 
@@ -289,7 +289,7 @@ namespace nets
     {
         if(!is_connected.load())
         {
-            std::println("DEBUG: Not continuing startMessageListener()");
+            //std::println("DEBUG: Not continuing startMessageListener()");
             return;
         }
 
@@ -309,9 +309,9 @@ namespace nets
                     return;
                 }
 
-                std::println("DEBUG: Inside first async read callback");
+                //std::println("DEBUG: Inside first async read callback");
 
-                std::println("DEBUG: Reading message size");
+                //std::println("DEBUG: Reading message size");
 
                 const auto message_size {
                     mdsm::Collection::prepareDataForExtracting<mdsm::Collection::Size>(
@@ -337,7 +337,7 @@ namespace nets
                             return;
                         }
 
-                        std::println("DEBUG: Reading message body");
+                        //std::println("DEBUG: Reading message body");
 
                         const auto message_id {
                             read_message_data.retrieve<MessageIdEnum>()
@@ -347,7 +347,7 @@ namespace nets
                         {
                             if(message_callbacks[message_id].second)
                             {
-                                std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
+                                //std::println("DEBUG: Callback is being called - Message ID = {}", static_cast<std::size_t>(message_id));
 
                                 std::thread {
                                     message_callbacks[message_id].first,
@@ -381,17 +381,17 @@ namespace nets
             {
                 while(is_connected)
                 {
-                    std::println("DEBUG: Pinging");
+                    //std::println("DEBUG: Pinging");
 
                     const auto pinging_result {ping()};
 
                     if(!pinging_result.has_value())
                     {
-                        std::println("DEBUG: pinging_result doesn't have value");
+                        //std::println("DEBUG: pinging_result doesn't have value");
 
                         if(pinging_result.error() == PingError::expired)
                         {
-                            std::println("DEBUG: Pinging timeout");
+                            //std::println("DEBUG: Pinging timeout");
 
                             is_connected = false;
 
@@ -399,7 +399,7 @@ namespace nets
                         }
                         else 
                         {
-                            std::println("DEBUG: Failed sending ping");
+                            //std::println("DEBUG: Failed sending ping");
 
                             is_connected = false;
 
@@ -410,7 +410,7 @@ namespace nets
                     {
                         // Ping response received successfully
                         
-                        std::println("DEBUG: Pinging succeeded");
+                        //std::println("DEBUG: Pinging succeeded");
 
                         is_connected = true;
                     }
@@ -437,7 +437,7 @@ namespace nets
             {
                 if((ping_sent_time + ping_timeout_period) <= std::chrono::system_clock::now())
                 {
-                    std::println("DEBUG: Inside Ping Expired if");
+                    //std::println("DEBUG: Inside Ping Expired if");
 
                     ping_response_received = false;
 
@@ -445,7 +445,7 @@ namespace nets
                 }
             }
 
-            std::println("DEBUG: Exited ping while loop");
+            //std::println("DEBUG: Exited ping while loop");
 
             return std::chrono::system_clock::now() - ping_sent_time;
         }
