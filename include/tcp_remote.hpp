@@ -21,7 +21,7 @@ namespace nets
     {
         public:
             using PingTime = std::chrono::duration<double>;
-            using MessageReceivedCallback = std::function<void(const mdsm::Collection& collection, TcpRemote& remote)>;
+            using MessageReceivedCallback = std::function<void(mdsm::Collection collection, TcpRemote& remote)>;
 
             //TcpRemote(nets::TcpSocket& socket);
             TcpRemote(

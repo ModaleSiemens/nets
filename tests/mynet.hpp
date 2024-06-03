@@ -4,7 +4,9 @@
 
 enum class MessageIds
 {
-    ping_request = 1, ping_response = 2, probe = 3
+    ping_request = 1, ping_response = 2, probe = 3,
+    message_request,
+    message_response
 };
 
 class Remote : public nets::TcpRemote<MessageIds>
