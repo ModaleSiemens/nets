@@ -15,14 +15,14 @@ class Server : public nets::TcpServer<MessageIds, Remote>
 
             std::println("{}", client->getPort());
 
-            while(true)
+            while(client->isConnected())
             {
                 //std::println("{}", client->isConnected());
             }
 
-            //std::println("{}", closeConnection(client));
+            std::println("Client disconnected...");
 
-            //std::println("Closed connection...");
+            closeConnection(client);
         }
 
         virtual void onForbiddenClientConnection(std::shared_ptr<Remote> client) override

@@ -185,7 +185,7 @@ namespace nets
         {
             std::println("DEBUG: Accepting");
 
-            clients.emplace_back(
+            clients.push_back(
                 std::make_shared<Remote>(
                     io_context, ping_timeout_time, ping_delay
                 )
@@ -223,19 +223,13 @@ namespace nets
                 client->start();          
                 
                 std::thread {
-                    [&, this]
-                    {
-                        onClientConnection(client);
-                    }
+                    onClientConnection, this, client
                 }.detach();
             }
             else
             {
                 std::thread {
-                    [&, this]
-                    {
-                        onForbiddenClientConnection(client);
-                    }
+                    onForbiddenClientConnection, this, client
                 }.detach();
             }
         }
