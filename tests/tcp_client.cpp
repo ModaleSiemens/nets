@@ -23,11 +23,6 @@ class Client : public nets::TcpClient<MessageIds, Remote>
 
             std::println("Server closed connection...");
         }
-
-        virtual void onDisconnection(std::shared_ptr<Remote> server) override
-        {
-            std::println("Disconnected...");
-        }
 };
 
 int main()

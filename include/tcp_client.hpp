@@ -23,9 +23,7 @@ namespace nets
             void connect();
             bool disconnect();
 
-            virtual void onConnection   (std::shared_ptr<Remote> server) = 0;
-            virtual void onDisconnection(std::shared_ptr<Remote> server) = 0;
-            virtual void process        (std::shared_ptr<Remote> server);
+            virtual void onConnection(std::shared_ptr<Remote> server) = 0;
 
             std::string_view getServerAddress();
             nets::Port       getServerPort   ();
@@ -129,11 +127,5 @@ namespace nets
         {
             return false;
         }
-    }
-
-    template <typename MessageIdEnum, typename Remote>
-    void TcpClient<MessageIdEnum, Remote>::process(std::shared_ptr<Remote> server)
-    {
-
     }
 }
