@@ -11,13 +11,24 @@ class Server : public nets::TcpServer<MessageIds, Remote>
 
         virtual void onClientConnection(std::shared_ptr<Remote> client) override
         {
-            std::println("Client connected!");
+            using namespace mdsm;
 
-            std::println("{}", client->getPort());
+            client->setOnReceiving(
+                MessageIds::message_request,
+                [&, this](Collection message, nets::TcpRemote<MessageIds>& server)
+                {
+                    const std::string received_string {message.retrieve<std::string>()};
+
+                    std::println("Received message from client: \"{}\".", received_string);
+
+                    client->send(
+                        Collection{} << MessageIds::message_response << received_string
+                    );
+                }
+            );
 
             while(client->isConnected())
             {
-                //std::println("{}", client->isConnected());
             }
 
             std::println("Client disconnected...");
