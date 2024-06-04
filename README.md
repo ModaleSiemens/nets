@@ -86,13 +86,11 @@ class Client : public nets::TcpClient<MessageIds, Remote>
                 );
             }
 
-            std::println("Server closed connection...");
-
             disconnect();
         }
 };
 ```
-Our custom client class is derived from an istance of the class template`TcpClient`, instantiated with the messages type enum class `MessageIds` and our remote class `Remote`.
+Our custom client class is derived from an instance of the class template `TcpClient`, instantiated with the messages type enum class `MessageIds` and our remote class `Remote`.
 
 `Client` overrides the base class pure virtual member function `onConnection(std::shared_ptr<TcpRemote> server)`, which is called when the client successfully connects to a server.
 
@@ -101,3 +99,53 @@ In this function, we first associate the message type `MessageIds::message_respo
 Then, we have a while loop which, on each iteration, checks whether the `Remote` is connected (`isConnected()` return value depends on the result of pinging the other machine): inside this while loop, we ask the user for a `\n`-terminated string, which we then send to the server via the non-blocking member function `send()`.
 
 If the while loop ends, it means the connection is closed, so we finally `disconnect()` the client.
+
+### Echo Server class
+```cpp
+class Server : public nets::TcpServer<MessageIds, Remote>
+{
+    public:
+        using TcpServer<MessageIds, Remote>::TcpServer;
+
+        virtual void onClientConnection(std::shared_ptr<Remote> client) override
+        {
+            using namespace mdsm;
+
+            client->setOnReceiving(
+                MessageIds::message_request,
+                [&, this](Collection message, nets::TcpRemote<MessageIds>& server)
+                {
+                    client->send(
+                        Collection{} << MessageIds::message_response << message.retrieve<std::string>()
+                    );
+                }
+            );
+
+            while(client->isConnected())
+            {
+            }
+
+            closeConnection(client);
+        }
+
+        virtual void onForbiddenClientConnection(std::shared_ptr<Remote> client) override
+        {
+            closeConnection(client);
+        }
+};
+```
+As with the `Client` class, our server class is derived from an instance of the class template `TcpServer`, instantiated with the messages type enum class `MessageIds` and our remote class `Remote`.
+
+`Server` ovverides two base class pure virtual member functions:
+- `onClientConnection(std::shared_ptr<Remote> client)`, which is called when a client connects normally.
+- `onForbiddenClientConnection(std::shared_ptr<Remote> client)`, called when a client connects while the server isn't **theorically** accepting requests.
+
+In the `onClientConnection()` member function, we use the same metod seen in the client class to send back the message we received from the client.
+
+Once the client isn't connected anymore, we officially close the connection.
+
+### Client `main.cpp`
+
+
+
+### Server `main.cpp`
