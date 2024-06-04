@@ -1,8 +1,10 @@
 # ModaleSiemens::nets
 
-This is an object-oriented, asyncronous Boost.Asio-based C++ networking header-only library. 
+This is an object-oriented, asyncronous **Boost.Asio**-based C++ networking header-only library. 
 
-This library contains a TcpClient class, a TcpServer class and a TcpRemote (represents a connection) class.
+This library contains a `TcpClient` class, a `TcpServer` class and a `TcpRemote` (represents a connection) class; relies on **ModaleSiemens::collection**, a header-only library providing a simple data serializer.
+
+This library uses the **Meson** build system, and exports the dependency `lib_nets_dep`.
 
 
 
