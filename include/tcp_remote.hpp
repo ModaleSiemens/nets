@@ -40,8 +40,8 @@ namespace nets
             void send(const mdsm::Collection& message);
             //void syncSend(const mdsm::Collection& message);
 
-            virtual void onFailedSending(const mdsm::Collection& message) {};
-            virtual void onFailedReading(const boost::system::error_code& error) {};
+            virtual void onFailedSending(mdsm::Collection message) {};
+            virtual void onFailedReading(boost::system::error_code error) {};
 
             void setOnReceiving(
                 const MessageIdEnum message_id,
