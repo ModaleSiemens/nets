@@ -6,9 +6,7 @@ This library contains a `TcpClient` class, a `TcpServer` class and a `TcpRemote`
 
 This library uses the **Meson** build system, and exports the dependency `lib_nets_dep`.
 
-
-
-## Echo Client-Server example
+## Echo client-server example
 
 ### `MessageIds` enum class
 ```cpp
@@ -46,7 +44,7 @@ The same `nets::TcpRemote<>` template class derived class `Remote` is used for b
 
 It's instantiated with `MessageIds` as template type parameter. This enum class is used for exchanging messages between two remotes, and **must** contain at least two enumerators: `ping_request` and `ping_response`, used internally in pinging operations.
 
-`Remote` overrides the three base class virtual (not pure) functions:
+`Remote` overrides the three base class virtual (not pure) member functions:
 ```cpp
 void onFailedSending (mdsm::Collection message)
 void onFailedReading (std::optional<boost::system::error_code> error)
@@ -93,5 +91,13 @@ class Client : public nets::TcpClient<MessageIds, Remote>
             disconnect();
         }
 };
-
 ```
+Our custom client class is derived from an istance of the class template`TcpClient`, instantiated with the messages type enum class `MessageIds` and our remote class `Remote`.
+
+`Client` overrides the base class pure virtual member function `onConnection(std::shared_ptr<TcpRemote> server)`, which is called when the client successfully connects to a server.
+
+In this function, we first associate the message type `MessageIds::message_response` with a callback used to print the received string.
+
+Then, we have a while loop which, on each iteration, checks whether the `Remote` is connected (`isConnected()` return value depends on the result of pinging the other machine): inside this while loop, we ask the user for a `\n`-terminated string, which we then send to the server via the non-blocking member function `send()`.
+
+If the while loop ends, it means the connection is closed, so we finally `disconnect()` the client.
