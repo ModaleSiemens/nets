@@ -4,7 +4,7 @@
 
 enum class MessageIds
 {
-    ping_request = 1, ping_response = 2, probe = 3,
+    ping_request, ping_response,
     message_request,
     message_response
 };
@@ -19,7 +19,7 @@ class Remote : public nets::TcpRemote<MessageIds>
             std::println("Failed to send message...");
         }
 
-        void onFailedReading(boost::system::error_code error) override
+        void onFailedReading(std::optional<boost::system::error_code> error) override
         {
             std::println("Failed to read from remote...");
         }
@@ -27,10 +27,5 @@ class Remote : public nets::TcpRemote<MessageIds>
         void onPingingTimeout() override
         {
             std::println("Remote didn't respond in time...");
-        }
-
-        void onPingFailedSending() override
-        {
-            std::println("Failed to send ping...");
         }
 };

@@ -8,6 +8,7 @@
 #include <thread>
 #include <memory>
 #include <deque>
+#include <optional>
 
 #include <print>
 
@@ -40,8 +41,15 @@ namespace nets
             void send(const mdsm::Collection& message);
             //void syncSend(const mdsm::Collection& message);
 
-            virtual void onFailedSending(mdsm::Collection message) {};
-            virtual void onFailedReading(boost::system::error_code error) {};
+            virtual void onFailedSending (mdsm::Collection message) {};
+            virtual void onFailedReading (
+                std::optional<boost::system::error_code> error = std::nullopt
+            )
+            {
+            };
+            
+            virtual void onPingingTimeout() {};
+
 
             void setOnReceiving(
                 const MessageIdEnum message_id,
@@ -50,9 +58,6 @@ namespace nets
             );
 
             void setPingingTimeoutPeriod(const PingTime period);
-
-            virtual void onPingingTimeout()   {};
-            virtual void onPingFailedSending() {};
 
             std::expected<PingTime, nets::PingError> ping(const PingTime period = PingTime{0});
 
@@ -403,7 +408,7 @@ namespace nets
 
                             is_connected = false;
 
-                            onPingFailedSending();
+                            onFailedReading();
                         }
                     }
                     else 
