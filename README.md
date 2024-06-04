@@ -146,6 +146,48 @@ Once the client isn't connected anymore, we officially close the connection.
 
 ### Client `main.cpp`
 
+```cpp
+int main()
+{
+    Client client {
+        "localhost",
+        "60000",
+        Remote::PingTime{4},
+        Remote::PingTime{6}
+    };
 
+    client.connect();
 
+    while(true)
+    {
+    }
+
+    return 0;
+}
+```
 ### Server `main.cpp`
+
+```cpp
+int main()
+{
+    Server server {
+        60'000,
+        nets::IPVersion::ipv4,
+        Remote::PingTime{4},
+        Remote::PingTime{6} 
+    };
+
+    server.startAccepting();
+
+    while(true)
+    {
+    }
+
+    return 0;
+}
+
+```
+
+Both `connect()` and `startAccepting()` are non-blocking functions. 
+
+The first `Remote::PingTime` refers to the ping timeout period, while the seconds indicates the delay between consecutive pingings.
