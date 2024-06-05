@@ -12,8 +12,8 @@ namespace nets
             using PingTime = Remote::PingTime;
 
             TcpClient(
-                const std::string_view address,
-                const std::string_view port,
+                const std::string_view address                   = "",
+                const std::string_view port                      = "",
                 const PingTime         ping_timeout_period       = PingTime{4},
                 const PingTime         ping_delay                = PingTime{6}
             );
@@ -25,16 +25,19 @@ namespace nets
 
             virtual void onConnection(std::shared_ptr<Remote> server) = 0;
 
+            void setServerAddress(const std::string_view address);
+            void setServerPort   (const std::string_view port);
+
             std::string_view getServerAddress();
-            nets::Port       getServerPort   ();
+            std::string_view getServerPort   ();
 
             bool isConnected();
         
         private:
             boost::asio::io_context io_context;
 
-            const std::string address;
-            const std::string port;
+            std::string address;
+            std::string port;
 
             std::shared_ptr<Remote> server;
 
@@ -128,4 +131,28 @@ namespace nets
             return false;
         }
     }
+
+    template <typename MessageIdEnum, typename Remote>
+    void TcpClient<MessageIdEnum, Remote>::setServerAddress(const std::string_view t_address)
+    {
+        address = t_address;
+    }
+    
+    template <typename MessageIdEnum, typename Remote>
+    void TcpClient<MessageIdEnum, Remote>::setServerPort(const std::string_view t_port)
+    {
+        port = t_port;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    std::string_view TcpClient<MessageIdEnum, Remote>::getServerAddress()
+    {
+        return address;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    std::string_view TcpClient<MessageIdEnum, Remote>::getServerPort()
+    {
+        return port;
+    }    
 }

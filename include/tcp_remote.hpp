@@ -58,6 +58,7 @@ namespace nets
             );
 
             void setPingingTimeoutPeriod(const PingTime period);
+            void setPingingDelay        (const PingTime delay);
 
             std::expected<PingTime, nets::PingError> ping(const PingTime period = PingTime{0});
 
@@ -197,6 +198,12 @@ namespace nets
     void TcpRemote<MessageIdEnum>::setPingingTimeoutPeriod(const PingTime t_ping_timeout_period)
     {
         ping_timeout_period = t_ping_timeout_period;
+    }
+
+    template <typename MessageIdEnum>
+    void TcpRemote<MessageIdEnum>::setPingingDelay(const PingTime delay)
+    {
+        ping_delay = delay;
     }
 
     template <typename MessageIdEnum>
