@@ -50,7 +50,7 @@ namespace nets
             std::list<std::shared_ptr<Remote>>&       getClients();
             const std::list<std::shared_ptr<Remote>>& getClients() const;
 
-            ~TcpServer();
+            virtual ~TcpServer();
         
         private:
             boost::asio::io_context        io_context;

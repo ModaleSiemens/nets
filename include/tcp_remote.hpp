@@ -36,7 +36,7 @@ namespace nets
 
             bool isConnected();
 
-            ~TcpRemote();
+            virtual ~TcpRemote();
 
             void send(const mdsm::Collection& message);
             //void syncSend(const mdsm::Collection& message);

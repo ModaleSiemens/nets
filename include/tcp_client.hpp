@@ -18,7 +18,7 @@ namespace nets
                 const PingTime         ping_delay                = PingTime{6}
             );
 
-            ~TcpClient();
+            virtual ~TcpClient();
 
             void connect();
             bool disconnect();
