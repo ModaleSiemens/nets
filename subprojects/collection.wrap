@@ -3,3 +3,7 @@
 directory = collection
 url       = https://github.com/ModaleSiemens/collection.git
 revision  = head
+
+[provide]
+
+libcollection = collection_dep

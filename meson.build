@@ -25,7 +25,8 @@ if host_machine.system() == 'windows'
 endif
 
 deps = [
-    sockets_dep
+    sockets_dep,
+    dependency('libcollection')
 ]
 
 inc = include_directories('include')

@@ -13,7 +13,7 @@
 #include <print>
 
 #include "types.hpp"
-#include "../subprojects/collection/include/collection.hpp"
+#include "collection.hpp"
 
 namespace nets
 {
