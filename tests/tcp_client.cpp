@@ -14,6 +14,17 @@ class Client : public nets::TcpClient<MessageIds, Remote>
         {
             using namespace mdsm;
 
+            server->onFailedReading = [&, this](std::optional<boost::system::error_code> error){
+                if(error.has_value())
+                {
+                    std::println("Error: {}.", error.value().message());
+                }
+                else 
+                {
+                    std::println("Error.");
+                }
+            };
+
             server->setOnReceiving(
                 MessageIds::message_response,
                 [&, this](Collection message, nets::TcpRemote<MessageIds>& server)

@@ -28,7 +28,10 @@ namespace nets
             TcpRemote(
                 boost::asio::io_context& io_context,
                 const PingTime           ping_timeout_period,
-                const PingTime           ping_delay
+                const PingTime           ping_delay,
+                const std::function<void(mdsm::Collection)>&                         on_failed_sending_callback  = {},
+                const std::function<void(std::optional<boost::system::error_code>)>& on_failed_reading_callback  = {},
+                const std::function<void()>                                          on_pinging_timeout_callback = {}                
             );
 
             void start();
@@ -40,6 +43,7 @@ namespace nets
 
             void send(const mdsm::Collection& message);
 
+            /*
             virtual void onFailedSending (mdsm::Collection message) {};
             virtual void onFailedReading (
                 std::optional<boost::system::error_code> error = std::nullopt
@@ -47,6 +51,11 @@ namespace nets
             {};
             
             virtual void onPingingTimeout() {};
+            */
+
+            std::function<void(mdsm::Collection)>                         onFailedSending;
+            std::function<void(std::optional<boost::system::error_code>)> onFailedReading;
+            std::function<void()>                                         onPingingTimeout;
 
             void setOnReceiving(
                 const MessageIdEnum message_id,
@@ -104,13 +113,19 @@ namespace nets
 {
     template <typename MessageIdEnum>
     TcpRemote<MessageIdEnum>::TcpRemote(
-        boost::asio::io_context& io_context,
+        boost::asio::io_context& io_context,   
         const PingTime ping_timeout_period,
-        const PingTime ping_delay
+        const PingTime ping_delay,
+        const std::function<void(mdsm::Collection)>& on_failed_sending_callback,
+        const std::function<void(std::optional<boost::system::error_code>)>& on_failed_reading_callback,
+        const std::function<void()> on_pinging_timeout_callback        
     )
     :
         io_context               {io_context},
         socket                   {io_context},
+        onFailedSending{on_failed_sending_callback},
+        onFailedReading{on_failed_reading_callback},
+        onPingingTimeout{on_pinging_timeout_callback},
         ping_timeout_period      {ping_timeout_period},
         ping_delay               {ping_delay}
     {
@@ -259,9 +274,12 @@ namespace nets
                 }
                 else 
                 {
-                    std::thread {
-                        onFailedSending, this, message
-                    }.detach();
+                    if(onFailedSending)
+                    {
+                        std::thread {
+                            onFailedSending, message
+                        }.detach();
+                    }
                 }
             }
         );
@@ -309,9 +327,12 @@ namespace nets
                 {
                     is_connected = false;
 
-                    std::thread {
-                        onFailedReading, this, error
-                    }.detach();
+                    if(onFailedReading)
+                    {
+                        std::thread {
+                            onFailedReading, error
+                        }.detach();
+                    }
 
                     return;
                 }
@@ -337,9 +358,12 @@ namespace nets
                         {
                             is_connected = false;
 
-                            std::thread {
-                                onFailedReading, this, error
-                            }.detach();
+                            if(onFailedReading)
+                            {
+                                std::thread {
+                                    onFailedReading, error
+                                }.detach();
+                            }
 
                             return;
                         }
@@ -402,7 +426,10 @@ namespace nets
 
                             is_connected = false;
 
-                            onPingingTimeout();
+                            if(onPingingTimeout)
+                            {
+                                onPingingTimeout();
+                            }
                         }
                         else 
                         {
@@ -410,7 +437,10 @@ namespace nets
 
                             is_connected = false;
 
-                            onFailedReading();
+                            if(onFailedReading)
+                            {
+                                onFailedReading(std::nullopt);
+                            }
                         }
                     }
                     else 
