@@ -20,8 +20,8 @@ namespace nets
 
             virtual ~TcpClient();
 
-            void connect();
-            bool disconnect();
+            bool connect();
+            void disconnect();
 
             virtual void onConnection(std::shared_ptr<Remote> server) = 0;
 
@@ -30,9 +30,7 @@ namespace nets
 
             std::string_view getServerAddress();
             std::string_view getServerPort   ();
-
-            bool isConnected();
-        
+ 
         private:
             boost::asio::io_context io_context;
 
@@ -40,8 +38,6 @@ namespace nets
             std::string port;
 
             std::shared_ptr<Remote> server;
-
-            bool is_connected {false};
 
             std::atomic_bool active {true};
 
@@ -89,47 +85,40 @@ namespace nets
     }
 
     template <typename MessageIdEnum, typename Remote>
-    void TcpClient<MessageIdEnum, Remote>::connect()
+    bool TcpClient<MessageIdEnum, Remote>::connect()
     {
-        if(!is_connected)
+        boost::system::error_code error;
+
+        boost::asio::ip::tcp::resolver resolver {io_context};
+
+        boost::asio::connect(
+            server->getSocket(),
+            resolver.resolve(address, port),
+            error
+        );
+        
+        if(!error)
         {
-            is_connected = true;
+            server->start();
 
-            boost::system::error_code error;
+            onConnection(server);   
 
-            boost::asio::ip::tcp::resolver resolver {io_context};
-
-            boost::asio::connect(
-                server->getSocket(),
-                resolver.resolve(address, port),
-                error
-            );
-            
-            if(!error)
-            {
-                server->start();
-                onConnection(server);
-            }
-        }
-    }
-
-    template <typename MessageIdEnum, typename Remote>
-    bool TcpClient<MessageIdEnum, Remote>::disconnect()
-    {
-        if(is_connected)
-        {
-            boost::system::error_code error;
-
-            server->stop();
-            server->getSocket().shutdown(TcpSocket::shutdown_both);
-            server->getSocket().close(error);
-
-            return !error;
+            return true;   
         }
         else
         {
             return false;
         }
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    void TcpClient<MessageIdEnum, Remote>::disconnect()
+    {
+        boost::system::error_code error;
+
+        server->stop();
+        server->getSocket().shutdown(TcpSocket::shutdown_both);
+        server->getSocket().close(error);
     }
 
     template <typename MessageIdEnum, typename Remote>
