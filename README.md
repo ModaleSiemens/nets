@@ -188,6 +188,7 @@ int main()
 
 ```
 
-Both `connect()` and `startAccepting()` are non-blocking functions. 
+`startAccepting()` is a non blocking function, while `connect()` is blocking and returns whether the client successfully connected to the server.
+
 
 The first `Remote::PingTime` refers to the ping timeout period, while the seconds indicates the delay between consecutive pingings.
