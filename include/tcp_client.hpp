@@ -30,12 +30,14 @@ namespace nets
 
             std::string_view getServerAddress();
             std::string_view getServerPort   ();
-
-            std::shared_ptr<Remote> server;
  
         private:
             boost::asio::io_context io_context;
 
+        public:
+            std::shared_ptr<Remote> server;
+
+        private:
             std::string address;
             std::string port;
 
