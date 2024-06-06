@@ -39,17 +39,14 @@ namespace nets
             virtual ~TcpRemote();
 
             void send(const mdsm::Collection& message);
-            //void syncSend(const mdsm::Collection& message);
 
             virtual void onFailedSending (mdsm::Collection message) {};
             virtual void onFailedReading (
                 std::optional<boost::system::error_code> error = std::nullopt
             )
-            {
-            };
+            {};
             
             virtual void onPingingTimeout() {};
-
 
             void setOnReceiving(
                 const MessageIdEnum message_id,
@@ -89,9 +86,7 @@ namespace nets
             std::atomic_bool active       {true};
             std::atomic_bool is_connected {false};
 
-            std::deque<mdsm::Collection> outgoing_messages_queue;        
-
-            bool connectionIsOpen();    
+            std::deque<mdsm::Collection> outgoing_messages_queue;   
 
             void asyncSend(const mdsm::Collection& message);
             void messagesSenderLoop();     
