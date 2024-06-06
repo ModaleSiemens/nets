@@ -34,13 +34,13 @@ namespace nets
         private:
             boost::asio::io_context io_context;
 
+            std::string address;
+            std::string port;            
+
         public:
             std::shared_ptr<Remote> server;
 
         private:
-            std::string address;
-            std::string port;
-
             std::atomic_bool active {true};
 
             boost::asio::executor_work_guard<decltype(io_context.get_executor())> io_context_work;
