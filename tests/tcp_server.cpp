@@ -49,11 +49,12 @@ class Server : public nets::TcpServer<MessageIds, Remote>
 int main()
 {
     Server server {
-        60'000,
-        nets::IPVersion::ipv4,
         Remote::PingTime{4},
         Remote::PingTime{6} 
     };
+
+    server.setIpVersion(nets::IPVersion::ipv4);
+    server.setPort(60'000);
 
     server.startAccepting();
 

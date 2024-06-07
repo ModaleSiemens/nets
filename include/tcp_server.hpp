@@ -15,19 +15,9 @@ namespace nets
             using PingTime = Remote::PingTime;
 
             TcpServer(
-                const nets::Port      port         = nets::Port{},
-                const nets::IPVersion ip_version   = nets::IPVersion::ipv4,
                 const PingTime ping_timeout_period = PingTime{2},
                 const PingTime ping_delay          = PingTime{4}           
-            );
-
-            // Bind acceptor to specific address
-            TcpServer(
-                const nets::Port       port        = nets::Port{},
-                const std::string_view address     = "",
-                const PingTime ping_timeout_period = PingTime{2},
-                const PingTime ping_delay          = PingTime{4}              
-            );            
+            );          
 
             TcpServer(const TcpServer&) = delete;
 
@@ -90,15 +80,11 @@ namespace nets
 {
     template <typename MessageIdEnum, typename Remote>
     TcpServer<MessageIdEnum, Remote>::TcpServer(
-        const nets::Port       port,
-        const nets::IPVersion  ip_version,
         const PingTime ping_timeout_time,
         const PingTime ping_delay
     )
     :
         io_context{},
-        ip_version{ip_version},
-        port{port},
         ping_timeout_time{ping_timeout_time},
         ping_delay{ping_delay},
         io_context_work{io_context.get_executor()}
@@ -109,30 +95,7 @@ namespace nets
                 io_context.run();
             }
         }.detach();
-    }
-
-    template <typename MessageIdEnum, typename Remote>
-    TcpServer<MessageIdEnum, Remote>::TcpServer(
-        const nets::Port       port,
-        const std::string_view address,
-        const PingTime ping_timeout_time,
-        const PingTime ping_delay         
-    )
-    :
-        io_context{},
-        address{address},
-        port{port},
-        ping_timeout_time{ping_timeout_time},
-        ping_delay{ping_delay}     
-    {
-
-        std::thread {    
-            [&, this]
-            {
-                io_context.run();
-            }
-        }.detach();        
-    }    
+    }  
 
     template <typename MessageIdEnum, typename Remote>
     bool TcpServer<MessageIdEnum, Remote>::startAccepting()
