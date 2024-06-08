@@ -103,7 +103,9 @@ namespace nets
         {
             server->start();
 
-            onConnection(server);   
+            std::thread {
+                onConnection, this, server
+            }.detach();
 
             return true;   
         }
