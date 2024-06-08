@@ -46,7 +46,7 @@ namespace nets
             virtual ~TcpServer();
         
         private:
-            boost::asio::io_context        io_context;
+            boost::asio::io_context        server_io_context;
             std::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor;
 
             std::string address;
@@ -70,7 +70,7 @@ namespace nets
 
             std::atomic_bool active {true};
 
-            boost::asio::executor_work_guard<decltype(io_context.get_executor())> io_context_work;
+            boost::asio::executor_work_guard<decltype(server_io_context.get_executor())> server_io_context_work;
     };
 }
 
@@ -84,15 +84,15 @@ namespace nets
         const PingTime ping_delay
     )
     :
-        io_context{},
+        server_io_context{},
         ping_timeout_time{ping_timeout_time},
         ping_delay{ping_delay},
-        io_context_work{io_context.get_executor()}
+        server_io_context_work{server_io_context.get_executor()}
     {
         std::thread {    
             [&, this]
             {
-                io_context.run();
+                server_io_context.run();
             }
         }.detach();
     }  
@@ -107,7 +107,7 @@ namespace nets
             if(address == "")
             {
                 acceptor = std::make_shared<boost::asio::ip::tcp::acceptor>(
-                    io_context,
+                    server_io_context,
                     boost::asio::ip::tcp::endpoint{
                         ip_version == IPVersion::ipv4 ? boost::asio::ip::tcp::v4() : boost::asio::ip::tcp::v6(),
                         port
@@ -117,7 +117,7 @@ namespace nets
             else 
             {
                 acceptor = std::make_shared<boost::asio::ip::tcp::acceptor>(
-                    io_context,
+                    server_io_context,
                     boost::asio::ip::tcp::endpoint{
                         boost::asio::ip::make_address(address),
                         port
@@ -182,7 +182,7 @@ namespace nets
 
             clients.push_back(
                 std::make_shared<Remote>(
-                    io_context, ping_timeout_time, ping_delay
+                    server_io_context, ping_timeout_time, ping_delay
                 )
             ); 
 

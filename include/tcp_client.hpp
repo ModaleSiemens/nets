@@ -32,7 +32,7 @@ namespace nets
             std::string_view getServerPort   ();
  
         private:
-            boost::asio::io_context io_context;
+            boost::asio::io_context client_io_context;
 
             std::string address;
             std::string port;            
@@ -43,7 +43,7 @@ namespace nets
         private:
             std::atomic_bool active {true};
 
-            boost::asio::executor_work_guard<decltype(io_context.get_executor())> io_context_work;
+            boost::asio::executor_work_guard<decltype(client_io_context.get_executor())> client_io_context_work;
     };
 }
 
@@ -59,23 +59,23 @@ namespace nets
         const PingTime ping_delay 
     )
     :
-        io_context{},
+        client_io_context{},
 
         address{address},
         port{port},
 
         server{
             std::make_shared<Remote>(
-                io_context, ping_timer, ping_delay
+                client_io_context, ping_timer, ping_delay
             )
         },
 
-        io_context_work{io_context.get_executor()}
+        client_io_context_work{client_io_context.get_executor()}
     {
         std::thread {    
             [&, this]
             {
-                io_context.run();
+                client_io_context.run();
             }
         }.detach();
     }
@@ -91,7 +91,7 @@ namespace nets
     {
         boost::system::error_code error;
 
-        boost::asio::ip::tcp::resolver resolver {io_context};
+        boost::asio::ip::tcp::resolver resolver {client_io_context};
 
         boost::asio::connect(
             server->getSocket(),
