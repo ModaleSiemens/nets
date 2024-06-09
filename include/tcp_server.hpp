@@ -30,6 +30,10 @@ namespace nets
             void setIpVersion(const nets::IPVersion  ip_version);
             void setPort     (const nets::Port       port);
 
+            std::string_view getAddress();
+            nets::IPVersion  getIpVersion();
+            nets::Port       getPort();
+
             virtual void onClientConnection(std::shared_ptr<Remote> client) = 0;
             
             // Client connected when server wasn't accepting requests
@@ -171,6 +175,24 @@ namespace nets
     void TcpServer<MessageIdEnum, Remote>::setPort(const nets::Port t_port)
     {
         port = t_port;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    std::string_view TcpServer<MessageIdEnum, Remote>::getAddress()
+    {
+        return address;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    nets::IPVersion TcpServer<MessageIdEnum, Remote>::getIpVersion()
+    {
+        return ip_version;
+    }
+
+    template <typename MessageIdEnum, typename Remote>
+    nets::Port TcpServer<MessageIdEnum, Remote>::getPort()
+    {
+        return port;
     }
 
     template <typename MessageIdEnum, typename Remote>
