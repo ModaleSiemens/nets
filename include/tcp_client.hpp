@@ -104,7 +104,7 @@ namespace nets
             server->start();
 
             std::thread {
-                onConnection, this, server
+                &TcpClient::onConnection, this, server
             }.detach();
 
             return true;   

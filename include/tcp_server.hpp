@@ -240,13 +240,13 @@ namespace nets
                 client->start();          
                 
                 std::thread {
-                    onClientConnection, this, client
+                    &TcpServer::onClientConnection, this, client
                 }.detach();
             }
             else
             {
                 std::thread {
-                    onForbiddenClientConnection, this, client
+                    &TcpServer::onForbiddenClientConnection, this, client
                 }.detach();
             }
         }
