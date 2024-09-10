@@ -36,7 +36,9 @@ lib_nets = library(
     src,
 
     include_directories: inc,
-    dependencies       : deps
+    dependencies       : deps,
+
+    install: true
 )
 
 lib_nets_dep = declare_dependency(
